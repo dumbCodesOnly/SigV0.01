@@ -1,0 +1,75 @@
+Build me a crypto market analyst + signal bot, not an auto-trader.
+
+The bot must:
+1. Data ingestion (live)
+Use Binance WebSocket (btcusdt@kline_15m as default) to get OHLCV in real-time.
+Store rolling OHLCV in Pandas DataFrame.
+Add option to plug in CCXT-Pro for other exchanges.
+
+2. Technical analysis
+Use TA-Lib (or pandas-ta if TA-Lib unavailable).
+Compute EMA(50/200), RSI(14), ATR(14), Bollinger Bands.
+Detect pullback + breakout setups with trend filter:
+Long: EMA50 > EMA200, RSI > 50, breakout above BB squeeze.
+Short: EMA50 < EMA200, RSI < 50, breakdown below BB squeeze.
+
+3. Sentiment/news
+Integrate Finnhub API (news + sentiment).
+Integrate LunarCrush API (crypto social sentiment).
+Add fallback FinBERT model (HuggingFace) for NLP classification of headlines.
+Require sentiment alignment:
+Long only if sentiment ≥ +0.2.
+Short only if ≤ –0.2.
+
+4. Signal generation
+Each signal must include:
+Pair & timeframe
+Direction (LONG/SHORT)
+Entry price (last close)
+Stop loss (2× ATR or swing low/high)
+TP1/TP2/TP3 (1.0R, 1.5R, 2.5R multiples)
+Breakeven rule (after TP1 by default, configurable)
+Optional trailing stop (ATR × 2.5)
+Confidence score (0–1, blend TA + sentiment)
+Reasons (list of TA + sentiment conditions triggered)
+Format signals as both:
+JSON dict (for logging/backtesting).
+Telegram message (HTML) (for live alerts).
+
+5. Backtesting
+Provide a Backtesting.py module to run the same strategy on historical data.
+Log win-rate, PF, max drawdown, avg R, exposure by hour/day.
+Ensure no lookahead bias (only use closed candles).
+
+6. Telegram notifier
+Use python-telegram-bot.
+Send formatted signal messages to a configured chat ID.
+Example format:
+<b>BTCUSDT · LONG · 15m</b>
+Entry: <code>62,050</code>
+SL: <code>61,380</code>
+TP1/TP2/TP3: <code>62,670 / 63,080 / 63,840</code>
+BE after: TP1 • Trail: ATR x2.5
+Confidence: 72%
+Why: EMA50>200, RSI↑, Breakout, Positive sentiment
+
+7. Config & deployment
+Config file (YAML/ENV) with:
+Symbols/timeframes
+Risk per trade
+BE rules (TP1/TP2/TP3)
+Trail type (ATR or chandelier)
+API keys (Binance, Finnhub, LunarCrush, Telegram)
+Run as async loop (collector → features → sentiment → scorer → notifier).
+Dockerfile + requirements.txt.
+
+⚡ Deliverables:
+main.py – entrypoint for live agent.
+strategy.py – TA + sentiment signal generation.
+backtest.py – backtesting module.
+notifier.py – Telegram sender.
+config.yaml – all params + API keys.
+requirements.txt – deps (pandas, numpy, ta-lib, websockets, ccxt, backtesting, python-telegram-bot, requests, transformers, torch).
+Dockerfile – lightweight runtime.
+
+👉 Your job: Scaffold all files, wire them up, and ensure I can run on vercel and on Replit with python 
