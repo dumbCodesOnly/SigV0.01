@@ -56,9 +56,20 @@ class DataCollector:
     
     async def get_ohlcv_data(self, symbol: str, timeframe: str, limit: int = 200) -> Optional[pd.DataFrame]:
         """
-        Get OHLCV data from Binance API
+        Get OHLCV data from Binance API with CoinGecko fallback
         Returns DataFrame with columns: timestamp, open, high, low, close, volume
         """
+        # Try Binance first
+        binance_data = await self._get_binance_data(symbol, timeframe, limit)
+        if binance_data is not None:
+            return binance_data
+        
+        # Fallback to CoinGecko
+        self.logger.info("Binance API unavailable, using CoinGecko fallback")
+        return await self._get_coingecko_data(symbol, timeframe, limit)
+    
+    async def _get_binance_data(self, symbol: str, timeframe: str, limit: int) -> Optional[pd.DataFrame]:
+        """Get data from Binance API"""
         try:
             session = await self._get_session()
             interval = self._timeframe_to_interval(timeframe)
@@ -95,17 +106,115 @@ class DataCollector:
                     # Set timestamp as index
                     df.set_index('timestamp', inplace=True)
                     
-                    self.logger.info(f"Retrieved {len(df)} candles for {symbol} {timeframe}")
+                    self.logger.info(f"Retrieved {len(df)} candles for {symbol} {timeframe} from Binance")
                     return df
                 else:
-                    self.logger.error(f"Binance API error: {response.status}")
-                    error_text = await response.text()
-                    self.logger.error(f"Error details: {error_text}")
+                    self.logger.warning(f"Binance API error: {response.status}")
                     return None
                     
         except Exception as e:
-            self.logger.error(f"Error fetching OHLCV data: {e}")
+            self.logger.warning(f"Binance API unavailable: {e}")
             return None
+    
+    async def _get_coingecko_data(self, symbol: str, timeframe: str, limit: int) -> Optional[pd.DataFrame]:
+        """Get data from CoinGecko API as fallback"""
+        try:
+            session = await self._get_session()
+            
+            # Convert symbol to CoinGecko format
+            coin_id = self._symbol_to_coingecko_id(symbol)
+            if not coin_id:
+                self.logger.error(f"Unsupported symbol for CoinGecko: {symbol}")
+                return None
+            
+            # Calculate days based on timeframe and limit
+            timeframe_minutes = self._timeframe_to_minutes(timeframe)
+            days = max(1, min(365, (limit * timeframe_minutes) // (24 * 60)))
+            
+            url = f"https://api.coingecko.com/api/v3/coins/{coin_id}/ohlc"
+            params = {
+                'vs_currency': 'usd',
+                'days': days
+            }
+            
+            async with session.get(url, params=params) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    
+                    if not data:
+                        self.logger.error("No data received from CoinGecko")
+                        return None
+                    
+                    # Convert to DataFrame
+                    df = pd.DataFrame(data, columns=['timestamp', 'open', 'high', 'low', 'close'])
+                    
+                    # Convert timestamp to datetime
+                    df['timestamp'] = pd.to_datetime(df['timestamp'], unit='ms')
+                    
+                    # Add volume column (placeholder since CoinGecko OHLC doesn't include volume)
+                    df['volume'] = 1000000.0  # Placeholder volume
+                    
+                    # Convert price columns to float
+                    for col in ['open', 'high', 'low', 'close', 'volume']:
+                        df[col] = df[col].astype(float)
+                    
+                    # Set timestamp as index
+                    df.set_index('timestamp', inplace=True)
+                    
+                    # Resample to target timeframe if needed
+                    df = self._resample_coingecko_data(df, timeframe, limit)
+                    
+                    self.logger.info(f"Retrieved {len(df)} candles for {symbol} {timeframe} from CoinGecko")
+                    return df
+                else:
+                    self.logger.error(f"CoinGecko API error: {response.status}")
+                    return None
+                    
+        except Exception as e:
+            self.logger.error(f"Error fetching CoinGecko data: {e}")
+            return None
+    
+    def _symbol_to_coingecko_id(self, symbol: str) -> Optional[str]:
+        """Convert trading symbol to CoinGecko coin ID"""
+        symbol_mapping = {
+            'BTCUSDT': 'bitcoin',
+            'ETHUSDT': 'ethereum',
+            'BNBUSDT': 'binancecoin',
+            'ADAUSDT': 'cardano',
+            'SOLUSDT': 'solana',
+            'XRPUSDT': 'ripple',
+            'DOTUSDT': 'polkadot',
+            'DOGEUSDT': 'dogecoin',
+            'AVAXUSDT': 'avalanche-2',
+            'MATICUSDT': 'matic-network'
+        }
+        return symbol_mapping.get(symbol.upper())
+    
+    def _resample_coingecko_data(self, df: pd.DataFrame, target_timeframe: str, limit: int) -> pd.DataFrame:
+        """Resample CoinGecko data to target timeframe"""
+        try:
+            timeframe_mapping = {
+                '1m': '1T', '5m': '5T', '15m': '15T', '30m': '30T',
+                '1h': '1H', '4h': '4H', '1d': '1D'
+            }
+            
+            freq = timeframe_mapping.get(target_timeframe, '15T')
+            
+            # Resample OHLCV data
+            resampled = df.resample(freq).agg({
+                'open': 'first',
+                'high': 'max',
+                'low': 'min',
+                'close': 'last',
+                'volume': 'sum'
+            }).dropna()
+            
+            # Return latest data up to limit
+            return resampled.tail(limit)
+            
+        except Exception as e:
+            self.logger.error(f"Error resampling CoinGecko data: {e}")
+            return df.tail(limit)
     
     async def get_current_price(self, symbol: str) -> Optional[float]:
         """Get current price for a symbol"""
