@@ -1,0 +1,61 @@
+# Crypto Signal Bot Configuration
+
+# Trading Configuration
+trading:
+  symbol: "BTCUSDT"
+  timeframe: "15m"
+  check_interval: 300  # seconds between analysis cycles
+
+# API Keys (override with environment variables)
+api_keys:
+  binance_key: "your_binance_api_key"
+  binance_secret: "your_binance_secret_key"
+  finnhub_key: "your_finnhub_api_key"
+  telegram_token: "your_telegram_bot_token"
+
+# Telegram Configuration
+telegram:
+  chat_id: "your_telegram_chat_id"
+  enable_notifications: true
+
+# Technical Indicators Configuration
+indicators:
+  ema_fast: 50
+  ema_slow: 200
+  rsi_period: 14
+  atr_period: 14
+  bb_period: 20
+  bb_std: 2.0
+
+# Signal Generation Configuration
+signals:
+  min_confidence: 0.6
+  rsi_long_threshold: 50
+  rsi_short_threshold: 50
+
+# Sentiment Analysis Configuration
+sentiment:
+  threshold: 0.2  # minimum sentiment score for signal alignment
+  cache_duration: 300  # seconds
+
+# Risk Management Configuration
+risk_management:
+  account_balance: 10000  # USD
+  risk_per_trade: 2.0  # percentage of account balance
+  atr_multiplier_sl: 2.0  # ATR multiplier for stop loss
+  take_profit_ratios: [1.0, 1.5, 2.5]  # R multiples for TP levels
+  breakeven_after_tp: 1  # move to breakeven after which TP level
+  trailing_atr_multiplier: 2.5
+
+# Backtesting Configuration
+backtesting:
+  initial_balance: 10000
+  commission_rate: 0.001  # 0.1%
+
+# Logging Configuration
+logging:
+  level: "INFO"
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  file: "crypto_bot.log"
+  max_bytes: 10485760  # 10MB
+  backup_count: 5

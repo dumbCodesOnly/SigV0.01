@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crypto Signal Bot Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/feather-icons@4.28.0/dist/feather.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .status-card {
+            transition: all 0.3s ease;
+        }
+        .status-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        .signal-card {
+            border-left: 5px solid #007bff;
+        }
+        .signal-long {
+            border-left-color: #28a745;
+        }
+        .signal-short {
+            border-left-color: #dc3545;
+        }
+        .metric-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <i data-feather="trending-up" class="me-2"></i>
+                Crypto Signal Bot
+            </a>
+            <div class="navbar-nav ms-auto">
+                <span class="navbar-text" id="last-update">
+                    Last updated: <span class="loading-spinner"></span>
+                </span>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+        <!-- Status Cards -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card status-card bg-success text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="card-title">
+                                    <i data-feather="activity" class="me-1"></i>Status
+                                </h6>
+                                <div class="metric-value" id="bot-status">Loading...</div>
+                            </div>
+                            <i data-feather="server" size="32"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card status-card bg-info text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="card-title">
+                                    <i data-feather="bar-chart-2" class="me-1"></i>Signals Today
+                                </h6>
+                                <div class="metric-value" id="signals-count">0</div>
+                            </div>
+                            <i data-feather="target" size="32"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card status-card bg-warning text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="card-title">
+                                    <i data-feather="dollar-sign" class="me-1"></i>BTC Price
+                                </h6>
+                                <div class="metric-value" id="btc-price">$--,---</div>
+                            </div>
+                            <i data-feather="trending-up" size="32"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card status-card bg-secondary text-white">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <h6 class="card-title">
+                                    <i data-feather="percent" class="me-1"></i>24h Change
+                                </h6>
+                                <div class="metric-value" id="price-change">+0.00%</div>
+                            </div>
+                            <i data-feather="arrow-up" size="32"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Latest Signal Card -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card signal-card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i data-feather="zap" class="me-2"></i>Latest Signal
+                        </h5>
+                        <button class="btn btn-sm btn-outline-primary" onclick="refreshData()">
+                            <i data-feather="refresh-cw" class="me-1"></i>Refresh
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div id="latest-signal">
+                            <div class="text-muted text-center py-4">
+                                <i data-feather="clock" size="48" class="mb-2"></i>
+                                <p>No signals generated yet</p>
+                                <small>The bot is analyzing market conditions...</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configuration Info -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i data-feather="settings" class="me-2"></i>Configuration
+                        </h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-6">
+                                <strong>Symbol:</strong><br>
+                                <code id="config-symbol">BTCUSDT</code>
+                            </div>
+                            <div class="col-6">
+                                <strong>Timeframe:</strong><br>
+                                <code id="config-timeframe">15m</code>
+                            </div>
+                        </div>
+                        <hr>
+                        <div class="row">
+                            <div class="col-6">
+                                <strong>Risk per Trade:</strong><br>
+                                <code id="config-risk">2.0%</code>
+                            </div>
+                            <div class="col-6">
+                                <strong>Min Confidence:</strong><br>
+                                <code id="config-confidence">60%</code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0">
+                            <i data-feather="bar-chart" class="me-2"></i>Technical Indicators
+                        </h6>
+                    </div>
+                    <div class="card-body" id="indicators-data">
+                        <div class="text-muted text-center py-3">
+                            <div class="loading-spinner me-2"></div>
+                            Loading indicator data...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let lastUpdateTime = new Date();
+        let refreshInterval;
+
+        // Initialize the dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            feather.replace();
+            refreshData();
+            
+            // Set up auto-refresh every 30 seconds
+            refreshInterval = setInterval(refreshData, 30000);
+        });
+
+        // Main data refresh function
+        async function refreshData() {
+            try {
+                updateLastUpdateTime();
+                
+                // Fetch bot status
+                const response = await fetch('/api/status');
+                const data = await response.json();
+                
+                updateBotStatus(data);
+                updateLatestSignal(data.last_signal);
+                
+                // Fetch market data
+                await updateMarketData();
+                
+            } catch (error) {
+                console.error('Error refreshing data:', error);
+                showError('Failed to refresh data');
+            }
+        }
+
+        // Update bot status
+        function updateBotStatus(data) {
+            const statusElement = document.getElementById('bot-status');
+            const signalsElement = document.getElementById('signals-count');
+            
+            if (data.running) {
+                statusElement.textContent = 'Running';
+                statusElement.parentElement.parentElement.parentElement.className = 'card status-card bg-success text-white';
+            } else {
+                statusElement.textContent = 'Stopped';
+                statusElement.parentElement.parentElement.parentElement.className = 'card status-card bg-danger text-white';
+            }
+            
+            signalsElement.textContent = data.signal_count || 0;
+        }
+
+        // Update latest signal display
+        function updateLatestSignal(signal) {
+            const container = document.getElementById('latest-signal');
+            
+            if (!signal) {
+                container.innerHTML = `
+                    <div class="text-muted text-center py-4">
+                        <i data-feather="clock" size="48" class="mb-2"></i>
+                        <p>No signals generated yet</p>
+                        <small>The bot is analyzing market conditions...</small>
+                    </div>
+                `;
+                feather.replace();
+                return;
+            }
+
+            const directionClass = signal.direction === 'LONG' ? 'success' : 'danger';
+            const directionIcon = signal.direction === 'LONG' ? 'trending-up' : 'trending-down';
+            
+            container.innerHTML = `
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="badge bg-${directionClass} me-3 p-2">
+                                <i data-feather="${directionIcon}" class="me-1"></i>
+                                ${signal.direction}
+                            </div>
+                            <h5 class="mb-0">${signal.symbol} · ${signal.timeframe}</h5>
+                            <span class="badge bg-secondary ms-2">${Math.round(signal.confidence * 100)}%</span>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-3">
+                                <strong>Entry Price:</strong><br>
+                                <code class="fs-6">${formatPrice(signal.entry_price)}</code>
+                            </div>
+                            <div class="col-md-3">
+                                <strong>Stop Loss:</strong><br>
+                                <code class="fs-6">${formatPrice(signal.stop_loss)}</code>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Take Profits:</strong><br>
+                                <code class="fs-6">${signal.take_profits.map(formatPrice).join(' / ')}</code>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6>Analysis</h6>
+                                <ul class="list-unstyled small">
+                                    ${signal.reasons.slice(0, 4).map(reason => `<li>• ${reason}</li>`).join('')}
+                                </ul>
+                                <small class="text-muted">
+                                    Generated: ${new Date(signal.timestamp).toLocaleTimeString()}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            feather.replace();
+        }
+
+        // Update market data
+        async function updateMarketData() {
+            // This is a placeholder - in a real implementation you would fetch from your backend
+            // For now, we'll simulate some data
+            document.getElementById('btc-price').textContent = '$' + (Math.random() * 10000 + 60000).toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            document.getElementById('price-change').textContent = (Math.random() * 10 - 5).toFixed(2) + '%';
+            
+            // Update indicators
+            updateIndicators();
+        }
+
+        // Update technical indicators display
+        function updateIndicators() {
+            const container = document.getElementById('indicators-data');
+            
+            // Simulate indicator data
+            const indicators = {
+                'EMA 50': (Math.random() * 1000 + 60000).toFixed(2),
+                'EMA 200': (Math.random() * 1000 + 59000).toFixed(2),
+                'RSI': (Math.random() * 40 + 30).toFixed(1),
+                'ATR': (Math.random() * 500 + 200).toFixed(2)
+            };
+            
+            container.innerHTML = Object.entries(indicators).map(([name, value]) => `
+                <div class="row mb-2">
+                    <div class="col-6"><strong>${name}:</strong></div>
+                    <div class="col-6"><code>${value}</code></div>
+                </div>
+            `).join('');
+        }
+
+        // Update last update time
+        function updateLastUpdateTime() {
+            lastUpdateTime = new Date();
+            document.getElementById('last-update').innerHTML = `Last updated: ${lastUpdateTime.toLocaleTimeString()}`;
+        }
+
+        // Format price for display
+        function formatPrice(price) {
+            if (price >= 1000) {
+                return price.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+            } else if (price >= 1) {
+                return price.toFixed(4);
+            } else {
+                return price.toFixed(6);
+            }
+        }
+
+        // Show error message
+        function showError(message) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+            alertDiv.innerHTML = `
+                <i data-feather="alert-circle" class="me-2"></i>
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            
+            document.querySelector('.container').insertBefore(alertDiv, document.querySelector('.container').firstChild);
+            feather.replace();
+            
+            // Auto-dismiss after 5 seconds
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 5000);
+        }
+
+        // Handle page visibility changes
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'visible') {
+                refreshData();
+                refreshInterval = setInterval(refreshData, 30000);
+            } else {
+                clearInterval(refreshInterval);
+            }
+        });
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
