@@ -924,48 +924,73 @@ def index():
                 feather.replace();
             }
             
+            let currentSignalIndex = 0;
+            let allSignals = [];
+            
             function updateSignalsDisplay(lastSignals) {
                 const signalContainer = document.getElementById('latest-signal');
-                const signals = Object.values(lastSignals);
+                allSignals = Object.values(lastSignals);
                 
-                if (signals.length > 0) {
-                    // Show the most recent signal
-                    const latestSignal = signals.reduce((latest, current) => {
-                        return new Date(current.timestamp || 0) > new Date(latest.timestamp || 0) ? current : latest;
-                    });
-                    
-                    const directionColor = latestSignal.direction === 'LONG' ? '#4facfe' : '#ff6b6b';
-                    const directionIcon = latestSignal.direction === 'LONG' ? 'trending-up' : 'trending-down';
-                    
+                if (allSignals.length > 0) {
+                    currentSignalIndex = 0;
+                    displayCurrentSignal();
+                } else {
                     signalContainer.innerHTML = `
-                        <div class="row align-items-center">
-                            <div class="col-md-8">
-                                <div class="d-flex align-items-center mb-3">
-                                    <div class="badge px-3 py-2 me-3" style="background: ${directionColor}; font-size: 1rem;">
-                                        <i data-feather="${directionIcon}" class="me-2"></i>
-                                        ${latestSignal.direction}
-                                    </div>
-                                    <h5 class="text-white mb-0">${latestSignal.symbol} · ${latestSignal.timeframe}</h5>
-                                    <span class="badge bg-light text-dark ms-3">${Math.round(latestSignal.confidence * 100)}% Confidence</span>
+                        <div class="text-center py-5">
+                            <i data-feather="clock" class="mb-3" style="width: 64px; height: 64px; opacity: 0.3;"></i>
+                            <h5 class="text-white-50">No signals generated yet</h5>
+                            <p class="text-white-50 mb-0">The bot is analyzing market conditions...</p>
+                        </div>
+                    `;
+                }
+            }
+            
+            function displayCurrentSignal() {
+                const signalContainer = document.getElementById('latest-signal');
+                const signal = allSignals[currentSignalIndex];
+                
+                if (!signal) return;
+                
+                const directionColor = signal.direction === 'LONG' ? '#4facfe' : '#ff6b6b';
+                const directionIcon = signal.direction === 'LONG' ? 'trending-up' : 'trending-down';
+                
+                signalContainer.innerHTML = `
+                    <div class="row align-items-center">
+                        <div class="col-md-8">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="badge px-3 py-2 me-3" style="background: ${directionColor}; font-size: 1rem;">
+                                    <i data-feather="${directionIcon}" class="me-2"></i>
+                                    ${signal.direction}
                                 </div>
-                                
-                                <div class="row text-white-50">
-                                    <div class="col-md-4 mb-2">
-                                        <small class="d-block">Entry Price</small>
-                                        <strong class="text-white fs-5">$${latestSignal.entry_price}</strong>
+                                <h5 class="text-white mb-0">${signal.symbol} · ${signal.timeframe}</h5>
+                                <span class="badge bg-light text-dark ms-3">${Math.round(signal.confidence * 100)}% Confidence</span>
+                            </div>
+                            
+                            <div class="row text-white-50">
+                                <div class="col-md-4 mb-2">
+                                    <small class="d-block">Entry Price</small>
+                                        <strong class="text-white fs-5">$${signal.entry_price}</strong>
                                     </div>
                                     <div class="col-md-4 mb-2">
                                         <small class="d-block">Stop Loss</small>
-                                        <strong class="text-white fs-5">$${latestSignal.stop_loss}</strong>
+                                        <strong class="text-white fs-5">$${signal.stop_loss}</strong>
                                     </div>
                                     <div class="col-md-4 mb-2">
                                         <small class="d-block">Take Profits</small>
-                                        <strong class="text-white fs-6">${latestSignal.take_profits.map(tp => '$' + tp).join(' / ')}</strong>
+                                        <strong class="text-white fs-6">${signal.take_profits.map(tp => '$' + tp).join(' / ')}</strong>
                                     </div>
                                 </div>
                                 
-                                <div class="mt-3">
-                                    <small class="text-white-50">Active Signals: ${signals.length} across multiple timeframes</small>
+                                <div class="mt-3 d-flex justify-content-between align-items-center">
+                                    <small class="text-white-50">Signal ${currentSignalIndex + 1} of ${allSignals.length}</small>
+                                    <div>
+                                        <button class="btn btn-sm btn-outline-light me-2" onclick="previousSignal()" ${currentSignalIndex === 0 ? 'disabled' : ''}>
+                                            <i data-feather="chevron-left" class="me-1"></i>Previous
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-light" onclick="nextSignal()" ${currentSignalIndex === allSignals.length - 1 ? 'disabled' : ''}>
+                                            Next<i data-feather="chevron-right" class="ms-1"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                             
@@ -973,10 +998,10 @@ def index():
                                 <div class="glass-card p-3">
                                     <h6 class="text-white-50 mb-2">Analysis Reasons</h6>
                                     <ul class="list-unstyled text-white small mb-0">
-                                        ${latestSignal.reasons.slice(0, 3).map(reason => `<li class="mb-1">• ${reason}</li>`).join('')}
+                                        ${signal.reasons.slice(0, 3).map(reason => `<li class="mb-1">• ${reason}</li>`).join('')}
                                     </ul>
                                     <small class="text-white-50 mt-2 d-block">
-                                        Generated: ${new Date(latestSignal.timestamp || Date.now()).toLocaleTimeString()}
+                                        Generated: ${new Date(signal.timestamp || Date.now()).toLocaleTimeString()}
                                     </small>
                                 </div>
                             </div>
@@ -1002,6 +1027,22 @@ def index():
                         </div>
                     </div>
                 `;
+            }
+            
+            function nextSignal() {
+                if (currentSignalIndex < allSignals.length - 1) {
+                    currentSignalIndex++;
+                    displayCurrentSignal();
+                    feather.replace();
+                }
+            }
+            
+            function previousSignal() {
+                if (currentSignalIndex > 0) {
+                    currentSignalIndex--;
+                    displayCurrentSignal();
+                    feather.replace();
+                }
             }
             
             // Auto refresh every 30 seconds
