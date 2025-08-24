@@ -15,6 +15,7 @@ from typing import Dict, Any
 import yaml
 from flask import Flask, render_template_string, jsonify
 
+from api_config import APIConfig
 from data_collector import DataCollector
 from strategy import TradingStrategy
 from sentiment_analyzer import SentimentAnalyzer

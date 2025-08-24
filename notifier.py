@@ -8,6 +8,7 @@ import logging
 import aiohttp
 from datetime import datetime
 from typing import Dict, Any, Optional
+from api_config import APIConfig
 
 class TelegramNotifier:
     def __init__(self, config: Dict[str, Any]):
@@ -43,7 +44,7 @@ class TelegramNotifier:
             
             session = await self._get_session()
             
-            url = f"https://api.telegram.org/bot{self.bot_token}/sendMessage"
+            url = APIConfig.get_full_url('notification', 'telegram', 'send_message')
             
             payload = {
                 'chat_id': self.chat_id,

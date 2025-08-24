@@ -9,6 +9,7 @@ import aiohttp
 import json
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List
+from api_config import APIConfig
 
 class SentimentAnalyzer:
     def __init__(self, config: Dict[str, Any]):
@@ -55,15 +56,15 @@ class SentimentAnalyzer:
             session = await self._get_session()
             
             # Convert crypto symbol to Finnhub format
-            finnhub_symbol = symbol.replace('USDT', '-USD')
+            finnhub_symbol = APIConfig.get_symbol_mapping(symbol, 'finnhub')
+            if not finnhub_symbol:
+                return None
             
-            # Get recent news
-            params = {
-                'symbol': finnhub_symbol,
-                'token': self.finnhub_key
-            }
+            # Get recent news with auth params
+            params = {'symbol': finnhub_symbol}
+            params.update(APIConfig.get_auth_params('finnhub'))
             
-            url = "https://finnhub.io/api/v1/company-news"
+            url = APIConfig.get_full_url('sentiment', 'finnhub', 'company_news')
             
             async with session.get(url, params=params) as response:
                 if response.status == 200:
@@ -154,7 +155,7 @@ class SentimentAnalyzer:
             if not coin_id:
                 return None
             
-            url = f"https://api.coingecko.com/api/v3/coins/{coin_id}"
+            url = APIConfig.get_full_url('sentiment', 'coingecko', 'coin_data', id=coin_id)
             params = {'localization': 'false', 'tickers': 'false', 'market_data': 'true', 'community_data': 'true'}
             
             async with session.get(url, params=params) as response:
@@ -204,19 +205,7 @@ class SentimentAnalyzer:
     
     def _symbol_to_coingecko_id(self, symbol: str) -> Optional[str]:
         """Convert trading symbol to CoinGecko coin ID"""
-        symbol_map = {
-            'BTCUSDT': 'bitcoin',
-            'ETHUSDT': 'ethereum', 
-            'BNBUSDT': 'binancecoin',
-            'SOLUSDT': 'solana',
-            'XRPUSDT': 'ripple',
-            'ADAUSDT': 'cardano',
-            'DOGEUSDT': 'dogecoin',
-            'MATICUSDT': 'matic-network',
-            'DOTUSDT': 'polkadot',
-            'LTCUSDT': 'litecoin'
-        }
-        return symbol_map.get(symbol)
+        return APIConfig.get_symbol_mapping(symbol, 'coingecko')
     
     async def get_newsapi_sentiment(self, symbol: str) -> Optional[float]:
         """
@@ -233,14 +222,14 @@ class SentimentAnalyzer:
             if not coin_name:
                 return None
             
-            url = "https://newsapi.org/v2/everything"
+            url = APIConfig.get_full_url('sentiment', 'newsapi', 'everything')
             params = {
                 'q': f"{coin_name} cryptocurrency OR {coin_name} crypto",
                 'language': 'en',
                 'sortBy': 'publishedAt',
-                'pageSize': 20,
-                'apiKey': self.newsapi_key
+                'pageSize': 20
             }
+            params.update(APIConfig.get_auth_params('newsapi'))
             
             async with session.get(url, params=params) as response:
                 if response.status == 200:
@@ -274,19 +263,7 @@ class SentimentAnalyzer:
     
     def _symbol_to_coin_name(self, symbol: str) -> Optional[str]:
         """Convert trading symbol to coin name for news searches"""
-        name_map = {
-            'BTCUSDT': 'Bitcoin',
-            'ETHUSDT': 'Ethereum',
-            'BNBUSDT': 'Binance',
-            'SOLUSDT': 'Solana',
-            'XRPUSDT': 'Ripple',
-            'ADAUSDT': 'Cardano',
-            'DOGEUSDT': 'Dogecoin',
-            'MATICUSDT': 'Polygon',
-            'DOTUSDT': 'Polkadot',
-            'LTCUSDT': 'Litecoin'
-        }
-        return name_map.get(symbol)
+        return APIConfig.get_symbol_mapping(symbol, 'coin_names')
     
     async def get_fear_greed_index(self) -> Optional[float]:
         """
@@ -295,7 +272,7 @@ class SentimentAnalyzer:
         try:
             session = await self._get_session()
             
-            url = "https://api.alternative.me/fng/"
+            url = APIConfig.get_full_url('sentiment', 'fear_greed', 'fng')
             
             async with session.get(url) as response:
                 if response.status == 200:

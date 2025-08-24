@@ -9,20 +9,14 @@ import aiohttp
 import pandas as pd
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, List
+from api_config import APIConfig, BINANCE_ENDPOINTS
 
 class DataCollector:
     def __init__(self, config: Dict[str, Any]):
         self.config = config
         self.logger = logging.getLogger(__name__)
         # Multiple Binance API endpoints for fallback
-        self.binance_endpoints = [
-            "https://api.binance.com/api/v3",           # Primary endpoint
-            "https://data-api.binance.vision/api/v3",   # Market data only endpoint
-            "https://api1.binance.com/api/v3",          # Alternative 1
-            "https://api2.binance.com/api/v3",          # Alternative 2
-            "https://api3.binance.com/api/v3",          # Alternative 3
-            "https://api4.binance.com/api/v3"           # Alternative 4
-        ]
+        self.binance_endpoints = BINANCE_ENDPOINTS
         self.current_endpoint_index = 0
         self.session = None
         
