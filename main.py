@@ -410,6 +410,16 @@ def index():
                 background-color: rgba(79, 172, 254, 0.1);
             }
             
+            #market-overview-content {
+                transition: all 0.3s ease-in-out;
+                overflow: hidden;
+            }
+            
+            #market-details {
+                transition: all 0.3s ease-in-out;
+                overflow: hidden;
+            }
+            
             @media (max-width: 768px) {
                 .metric-value { font-size: 2rem; }
                 .header-title { font-size: 2rem; }
@@ -492,9 +502,9 @@ def index():
                                 Market Overview
                             </h4>
                             <div class="d-flex gap-2">
-                                <button class="btn btn-outline-light btn-sm" onclick="toggleMarketDetails()" id="expand-btn">
-                                    <i data-feather="chevron-down" class="me-1"></i>
-                                    Expand
+                                <button class="btn btn-outline-light btn-sm" onclick="toggleMarketOverview()" id="market-toggle-btn">
+                                    <i data-feather="chevron-up" class="me-1"></i>
+                                    Collapse
                                 </button>
                                 <button class="btn btn-modern" onclick="refreshData()">
                                     <i data-feather="refresh-cw" class="me-2"></i>
@@ -503,30 +513,41 @@ def index():
                             </div>
                         </div>
                         
-                        <div id="crypto-grid" class="row g-3">
-                            <!-- Crypto cards will be populated by JavaScript -->
-                        </div>
-                        
-                        <!-- Expanded market details -->
-                        <div id="market-details" class="mt-4" style="display: none;">
-                            <div class="row g-3">
-                                <div class="col-12">
-                                    <div class="table-responsive">
-                                        <table class="table table-dark table-hover">
-                                            <thead>
-                                                <tr class="text-white-50">
-                                                    <th>Symbol</th>
-                                                    <th>Price</th>
-                                                    <th>24h Change</th>
-                                                    <th>24h High</th>
-                                                    <th>24h Low</th>
-                                                    <th>Volume</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody id="market-table-body">
-                                                <!-- Table rows will be populated by JavaScript -->
-                                            </tbody>
-                                        </table>
+                        <!-- Collapsible Market Content -->
+                        <div id="market-overview-content">
+                            <div id="crypto-grid" class="row g-3">
+                                <!-- Crypto cards will be populated by JavaScript -->
+                            </div>
+                            
+                            <!-- Details toggle button -->
+                            <div class="text-center mt-4">
+                                <button class="btn btn-outline-light btn-sm" onclick="toggleMarketDetails()" id="details-expand-btn">
+                                    <i data-feather="chevron-down" class="me-1"></i>
+                                    Show Details
+                                </button>
+                            </div>
+                            
+                            <!-- Expanded market details -->
+                            <div id="market-details" class="mt-4" style="display: none;">
+                                <div class="row g-3">
+                                    <div class="col-12">
+                                        <div class="table-responsive">
+                                            <table class="table table-dark table-hover">
+                                                <thead>
+                                                    <tr class="text-white-50">
+                                                        <th>Symbol</th>
+                                                        <th>Price</th>
+                                                        <th>24h Change</th>
+                                                        <th>24h High</th>
+                                                        <th>24h Low</th>
+                                                        <th>Volume</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody id="market-table-body">
+                                                    <!-- Table rows will be populated by JavaScript -->
+                                                </tbody>
+                                            </table>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -746,17 +767,65 @@ def index():
                 }
             }
             
+            function toggleMarketOverview() {
+                const contentElement = document.getElementById('market-overview-content');
+                const toggleBtn = document.getElementById('market-toggle-btn');
+                const isExpanded = contentElement.style.display !== 'none';
+                
+                if (isExpanded) {
+                    contentElement.style.height = contentElement.scrollHeight + 'px';
+                    setTimeout(() => {
+                        contentElement.style.height = '0px';
+                        contentElement.style.opacity = '0';
+                    }, 10);
+                    setTimeout(() => {
+                        contentElement.style.display = 'none';
+                    }, 300);
+                    toggleBtn.innerHTML = '<i data-feather="chevron-down" class="me-1"></i>Expand';
+                } else {
+                    contentElement.style.display = 'block';
+                    contentElement.style.height = '0px';
+                    contentElement.style.opacity = '0';
+                    setTimeout(() => {
+                        contentElement.style.height = contentElement.scrollHeight + 'px';
+                        contentElement.style.opacity = '1';
+                    }, 10);
+                    setTimeout(() => {
+                        contentElement.style.height = 'auto';
+                    }, 300);
+                    toggleBtn.innerHTML = '<i data-feather="chevron-up" class="me-1"></i>Collapse';
+                }
+                
+                feather.replace();
+            }
+            
             function toggleMarketDetails() {
                 const detailsElement = document.getElementById('market-details');
-                const expandBtn = document.getElementById('expand-btn');
+                const expandBtn = document.getElementById('details-expand-btn');
                 const isExpanded = detailsElement.style.display !== 'none';
                 
                 if (isExpanded) {
-                    detailsElement.style.display = 'none';
-                    expandBtn.innerHTML = '<i data-feather="chevron-down" class="me-1"></i>Expand';
+                    detailsElement.style.height = detailsElement.scrollHeight + 'px';
+                    setTimeout(() => {
+                        detailsElement.style.height = '0px';
+                        detailsElement.style.opacity = '0';
+                    }, 10);
+                    setTimeout(() => {
+                        detailsElement.style.display = 'none';
+                    }, 300);
+                    expandBtn.innerHTML = '<i data-feather="chevron-down" class="me-1"></i>Show Details';
                 } else {
                     detailsElement.style.display = 'block';
-                    expandBtn.innerHTML = '<i data-feather="chevron-up" class="me-1"></i>Collapse';
+                    detailsElement.style.height = '0px';
+                    detailsElement.style.opacity = '0';
+                    setTimeout(() => {
+                        detailsElement.style.height = detailsElement.scrollHeight + 'px';
+                        detailsElement.style.opacity = '1';
+                    }, 10);
+                    setTimeout(() => {
+                        detailsElement.style.height = 'auto';
+                    }, 300);
+                    expandBtn.innerHTML = '<i data-feather="chevron-up" class="me-1"></i>Hide Details';
                 }
                 
                 feather.replace();
