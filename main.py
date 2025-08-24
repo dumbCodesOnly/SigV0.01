@@ -194,22 +194,32 @@ def index():
         <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
         <style>
             :root {
-                --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-                --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-                --danger-gradient: linear-gradient(135deg, #ff6b6b 0%, #ffa726 100%);
-                --dark-gradient: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
-                --glass-bg: rgba(255, 255, 255, 0.25);
-                --glass-border: rgba(255, 255, 255, 0.18);
-                --shadow-color: rgba(31, 38, 135, 0.2);
+                --primary-gradient: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+                --success-gradient: linear-gradient(135deg, #0f3460 0%, #1e3c72 100%);
+                --warning-gradient: linear-gradient(135deg, #2d1b69 0%, #1e3c72 100%);
+                --danger-gradient: linear-gradient(135deg, #cc2b5e 0%, #753a88 100%);
+                --dark-gradient: linear-gradient(135deg, #0c0c0c 0%, #1a1a1a 100%);
+                --glass-bg: rgba(30, 30, 30, 0.9);
+                --glass-border: rgba(70, 70, 70, 0.3);
+                --shadow-color: rgba(0, 0, 0, 0.5);
+                --text-primary: #ffffff;
+                --text-secondary: #b3b3b3;
+                --accent-blue: #4facfe;
+                --accent-green: #00d4aa;
+                --accent-red: #ff6b6b;
+                --background-dark: #0a0a0a;
             }
             
-            * { font-family: 'Inter', sans-serif; }
+            * { 
+                font-family: 'Inter', sans-serif;
+                color: var(--text-primary);
+            }
             
             body {
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #2d2d2d 100%);
                 min-height: 100vh;
                 position: relative;
+                color: var(--text-primary);
             }
             
             body::before {
@@ -220,8 +230,9 @@ def index():
                 width: 100%;
                 height: 100%;
                 background-image: 
-                    radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
-                    radial-gradient(circle at 75% 75%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+                    radial-gradient(circle at 20% 20%, rgba(79, 172, 254, 0.1) 0%, transparent 40%),
+                    radial-gradient(circle at 80% 80%, rgba(0, 212, 170, 0.1) 0%, transparent 40%),
+                    radial-gradient(circle at 40% 60%, rgba(255, 107, 107, 0.05) 0%, transparent 30%);
                 pointer-events: none;
                 z-index: -1;
             }
@@ -266,10 +277,10 @@ def index():
                 box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
             }
             
-            .status-card.running { background: var(--success-gradient); }
-            .status-card.signals { background: var(--primary-gradient); }
-            .status-card.price { background: var(--warning-gradient); }
-            .status-card.change { background: var(--danger-gradient); }
+            .status-card.running { background: linear-gradient(135deg, #0f3460 0%, #1e3c72 100%); }
+            .status-card.signals { background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); }
+            .status-card.price { background: linear-gradient(135deg, #2d1b69 0%, #1e3c72 100%); }
+            .status-card.change { background: linear-gradient(135deg, #cc2b5e 0%, #753a88 100%); }
             
             .metric-value {
                 font-size: 2.5rem;
@@ -312,20 +323,22 @@ def index():
             }
             
             .btn-modern {
-                background: var(--primary-gradient);
+                background: linear-gradient(135deg, #4facfe 0%, #00d4aa 100%);
                 border: none;
                 border-radius: 12px;
                 padding: 12px 24px;
                 font-weight: 600;
+                color: #ffffff;
                 transition: all 0.3s ease;
-                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+                box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
             }
             
             .btn-modern:hover {
                 transform: translateY(-2px);
-                box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
-                background: var(--primary-gradient);
+                box-shadow: 0 8px 25px rgba(79, 172, 254, 0.5);
+                background: linear-gradient(135deg, #00d4aa 0%, #4facfe 100%);
                 border: none;
+                color: #ffffff;
             }
             
             .loading-pulse {
@@ -345,14 +358,34 @@ def index():
             .header-title {
                 font-size: 2.5rem;
                 font-weight: 700;
-                color: white;
-                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                color: #ffffff;
+                text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
                 margin: 0;
+                background: linear-gradient(135deg, #4facfe 0%, #00d4aa 100%);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
             }
             
             .last-update {
                 font-size: 0.9rem;
                 opacity: 0.8;
+            }
+            
+            .text-white-50 {
+                color: var(--text-secondary) !important;
+            }
+            
+            .badge {
+                background-color: rgba(255, 255, 255, 0.1) !important;
+                color: var(--text-primary) !important;
+                border: 1px solid rgba(255, 255, 255, 0.2);
+            }
+            
+            .badge.bg-light {
+                background-color: rgba(79, 172, 254, 0.2) !important;
+                color: var(--accent-blue) !important;
+                border: 1px solid rgba(79, 172, 254, 0.3);
             }
             
             @media (max-width: 768px) {
