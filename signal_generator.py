@@ -77,6 +77,12 @@ class SignalGenerator:
     
     def _validate_sentiment_alignment(self, sentiment_score: float, direction: str) -> bool:
         """Validate sentiment alignment with signal direction"""
+        # If sentiment is neutral (0.0), allow signals to pass through
+        # This handles cases where sentiment data is unavailable
+        if abs(sentiment_score) < 0.01:  # Essentially neutral
+            self.logger.debug(f"Neutral sentiment detected, allowing {direction} signal to proceed")
+            return True
+            
         if direction == 'LONG':
             return sentiment_score >= self.sentiment_threshold
         elif direction == 'SHORT':

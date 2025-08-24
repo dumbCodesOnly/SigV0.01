@@ -29,13 +29,13 @@ indicators:
 
 # Signal Generation Configuration
 signals:
-  min_confidence: 0.6
-  rsi_long_threshold: 50
-  rsi_short_threshold: 50
+  min_confidence: 0.5  # lowered to allow more signals (was 0.6)
+  rsi_long_threshold: 45  # lowered for more LONG signals (was 50)
+  rsi_short_threshold: 55  # raised for more SHORT signals (was 50)
 
 # Sentiment Analysis Configuration
 sentiment:
-  threshold: 0.2  # minimum sentiment score for signal alignment
+  threshold: 0.1  # minimum sentiment score for signal alignment (lowered for better signal generation)
   cache_duration: 300  # seconds
 
 # Risk Management Configuration
