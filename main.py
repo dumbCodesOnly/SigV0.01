@@ -55,6 +55,8 @@ class CryptoSignalBot:
             config['api_keys']['binance_key'] = os.getenv('BINANCE_API_KEY', config['api_keys']['binance_key'])
             config['api_keys']['binance_secret'] = os.getenv('BINANCE_API_SECRET', config['api_keys']['binance_secret'])
             config['api_keys']['finnhub_key'] = os.getenv('FINNHUB_API_KEY', config['api_keys']['finnhub_key'])
+            config['api_keys']['newsapi_key'] = os.getenv('NEWSAPI_KEY', config['api_keys']['newsapi_key'])
+            config['api_keys']['cryptocompare_key'] = os.getenv('CRYPTOCOMPARE_KEY', config['api_keys']['cryptocompare_key'])
             config['api_keys']['telegram_token'] = os.getenv('TELEGRAM_BOT_TOKEN', config['api_keys']['telegram_token'])
             config['telegram']['chat_id'] = os.getenv('TELEGRAM_CHAT_ID', config['telegram']['chat_id'])
             

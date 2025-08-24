@@ -15,6 +15,8 @@ class SentimentAnalyzer:
         self.config = config
         self.logger = logging.getLogger(__name__)
         self.finnhub_key = config['api_keys'].get('finnhub_key')
+        self.newsapi_key = config['api_keys'].get('newsapi_key')
+        self.cryptocompare_key = config['api_keys'].get('cryptocompare_key')
         self.session = None
         
         # Sentiment cache to avoid excessive API calls
@@ -140,21 +142,221 @@ class SentimentAnalyzer:
         
         return sentiment_score
     
-    async def get_social_sentiment(self, symbol: str) -> Optional[float]:
+    async def get_coingecko_sentiment(self, symbol: str) -> Optional[float]:
         """
-        Get social media sentiment (placeholder for future implementation)
-        This could integrate with Twitter API, Reddit API, etc.
+        Get sentiment from CoinGecko API (free tier available)
         """
         try:
-            # Placeholder implementation
-            # In a real implementation, you would:
-            # 1. Fetch recent tweets/posts about the symbol
-            # 2. Analyze sentiment using NLP
-            # 3. Return aggregated sentiment score
+            session = await self._get_session()
             
-            # For now, return neutral sentiment
-            self.logger.info(f"Social sentiment for {symbol}: 0.0 (placeholder)")
-            return 0.0
+            # Convert symbol to CoinGecko format
+            coin_id = self._symbol_to_coingecko_id(symbol)
+            if not coin_id:
+                return None
+            
+            url = f"https://api.coingecko.com/api/v3/coins/{coin_id}"
+            params = {'localization': 'false', 'tickers': 'false', 'market_data': 'true', 'community_data': 'true'}
+            
+            async with session.get(url, params=params) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    
+                    # Extract sentiment indicators
+                    sentiment_score = 0.0
+                    
+                    # Market data sentiment
+                    market_data = data.get('market_data', {})
+                    if market_data:
+                        # Price change indicates sentiment
+                        price_change_24h = market_data.get('price_change_percentage_24h', 0)
+                        price_change_7d = market_data.get('price_change_percentage_7d', 0)
+                        
+                        # Convert price changes to sentiment (-1 to 1)
+                        price_sentiment = (price_change_24h * 0.7 + price_change_7d * 0.3) / 100
+                        sentiment_score += min(max(price_sentiment, -0.5), 0.5)
+                    
+                    # Community sentiment
+                    community_data = data.get('community_data', {})
+                    if community_data:
+                        reddit_posts_48h = community_data.get('reddit_posts_48h', 0)
+                        reddit_comments_48h = community_data.get('reddit_comments_48h', 0)
+                        
+                        # High activity can indicate positive sentiment
+                        if reddit_posts_48h > 10 or reddit_comments_48h > 50:
+                            sentiment_score += 0.1
+                    
+                    # Normalize to -1 to 1 range
+                    sentiment_score = max(-1.0, min(1.0, sentiment_score))
+                    
+                    self.logger.info(f"CoinGecko sentiment for {symbol}: {sentiment_score:.2f}")
+                    return sentiment_score
+                    
+                elif response.status == 429:
+                    self.logger.warning("CoinGecko API rate limit exceeded")
+                    return None
+                else:
+                    self.logger.warning(f"CoinGecko API error: {response.status}")
+                    return None
+                    
+        except Exception as e:
+            self.logger.error(f"Error getting CoinGecko sentiment: {e}")
+            return None
+    
+    def _symbol_to_coingecko_id(self, symbol: str) -> Optional[str]:
+        """Convert trading symbol to CoinGecko coin ID"""
+        symbol_map = {
+            'BTCUSDT': 'bitcoin',
+            'ETHUSDT': 'ethereum', 
+            'BNBUSDT': 'binancecoin',
+            'SOLUSDT': 'solana',
+            'XRPUSDT': 'ripple',
+            'ADAUSDT': 'cardano',
+            'DOGEUSDT': 'dogecoin',
+            'MATICUSDT': 'matic-network',
+            'DOTUSDT': 'polkadot',
+            'LTCUSDT': 'litecoin'
+        }
+        return symbol_map.get(symbol)
+    
+    async def get_newsapi_sentiment(self, symbol: str) -> Optional[float]:
+        """
+        Get news sentiment from NewsAPI
+        """
+        try:
+            if not self.newsapi_key:
+                return None
+            
+            session = await self._get_session()
+            
+            # Convert symbol to search terms
+            coin_name = self._symbol_to_coin_name(symbol)
+            if not coin_name:
+                return None
+            
+            url = "https://newsapi.org/v2/everything"
+            params = {
+                'q': f"{coin_name} cryptocurrency OR {coin_name} crypto",
+                'language': 'en',
+                'sortBy': 'publishedAt',
+                'pageSize': 20,
+                'apiKey': self.newsapi_key
+            }
+            
+            async with session.get(url, params=params) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    articles = data.get('articles', [])
+                    
+                    if not articles:
+                        return 0.0
+                    
+                    sentiment_scores = []
+                    for article in articles[:10]:  # Analyze first 10 articles
+                        title = article.get('title', '')
+                        description = article.get('description', '')
+                        text = f"{title} {description}"
+                        
+                        sentiment = self._analyze_text_sentiment(text)
+                        sentiment_scores.append(sentiment)
+                    
+                    if sentiment_scores:
+                        avg_sentiment = sum(sentiment_scores) / len(sentiment_scores)
+                        self.logger.info(f"NewsAPI sentiment for {symbol}: {avg_sentiment:.2f}")
+                        return avg_sentiment
+                    
+                else:
+                    self.logger.warning(f"NewsAPI error: {response.status}")
+                    return None
+                    
+        except Exception as e:
+            self.logger.error(f"Error getting NewsAPI sentiment: {e}")
+            return None
+    
+    def _symbol_to_coin_name(self, symbol: str) -> Optional[str]:
+        """Convert trading symbol to coin name for news searches"""
+        name_map = {
+            'BTCUSDT': 'Bitcoin',
+            'ETHUSDT': 'Ethereum',
+            'BNBUSDT': 'Binance',
+            'SOLUSDT': 'Solana',
+            'XRPUSDT': 'Ripple',
+            'ADAUSDT': 'Cardano',
+            'DOGEUSDT': 'Dogecoin',
+            'MATICUSDT': 'Polygon',
+            'DOTUSDT': 'Polkadot',
+            'LTCUSDT': 'Litecoin'
+        }
+        return name_map.get(symbol)
+    
+    async def get_fear_greed_index(self) -> Optional[float]:
+        """
+        Get Crypto Fear & Greed Index
+        """
+        try:
+            session = await self._get_session()
+            
+            url = "https://api.alternative.me/fng/"
+            
+            async with session.get(url) as response:
+                if response.status == 200:
+                    data = await response.json()
+                    
+                    if data.get('data') and len(data['data']) > 0:
+                        index_value = int(data['data'][0]['value'])
+                        
+                        # Convert 0-100 scale to -1 to 1 sentiment scale
+                        # 0-25: Extreme Fear (-0.8 to -0.4)
+                        # 25-45: Fear (-0.4 to -0.1)
+                        # 45-55: Neutral (-0.1 to 0.1)
+                        # 55-75: Greed (0.1 to 0.4)
+                        # 75-100: Extreme Greed (0.4 to 0.8)
+                        
+                        if index_value <= 25:
+                            sentiment = -0.8 + (index_value / 25) * 0.4
+                        elif index_value <= 45:
+                            sentiment = -0.4 + ((index_value - 25) / 20) * 0.3
+                        elif index_value <= 55:
+                            sentiment = -0.1 + ((index_value - 45) / 10) * 0.2
+                        elif index_value <= 75:
+                            sentiment = 0.1 + ((index_value - 55) / 20) * 0.3
+                        else:
+                            sentiment = 0.4 + ((index_value - 75) / 25) * 0.4
+                        
+                        self.logger.info(f"Fear & Greed Index: {index_value} -> sentiment: {sentiment:.2f}")
+                        return sentiment
+                        
+                else:
+                    self.logger.warning(f"Fear & Greed API error: {response.status}")
+                    return None
+                    
+        except Exception as e:
+            self.logger.error(f"Error getting Fear & Greed Index: {e}")
+            return None
+    
+    async def get_social_sentiment(self, symbol: str) -> Optional[float]:
+        """
+        Get aggregated social sentiment from multiple sources
+        """
+        try:
+            sentiment_sources = []
+            
+            # Try CoinGecko sentiment
+            coingecko_sentiment = await self.get_coingecko_sentiment(symbol)
+            if coingecko_sentiment is not None:
+                sentiment_sources.append(coingecko_sentiment)
+            
+            # Try NewsAPI sentiment
+            news_sentiment = await self.get_newsapi_sentiment(symbol)
+            if news_sentiment is not None:
+                sentiment_sources.append(news_sentiment)
+            
+            if sentiment_sources:
+                avg_sentiment = sum(sentiment_sources) / len(sentiment_sources)
+                self.logger.info(f"Social sentiment for {symbol}: {avg_sentiment:.2f} (from {len(sentiment_sources)} sources)")
+                return avg_sentiment
+            else:
+                self.logger.info(f"Social sentiment for {symbol}: 0.0 (no data available)")
+                return 0.0
             
         except Exception as e:
             self.logger.error(f"Error getting social sentiment: {e}")
@@ -163,18 +365,16 @@ class SentimentAnalyzer:
     async def get_market_sentiment(self, symbol: str) -> Optional[float]:
         """
         Get overall market sentiment indicators
-        This could include VIX-like indicators, fear & greed index, etc.
         """
         try:
-            # Placeholder for market sentiment indicators
-            # This could integrate with:
-            # - Crypto Fear & Greed Index
-            # - Google Trends
-            # - Market volatility indicators
-            
-            # For now, return neutral sentiment
-            self.logger.info(f"Market sentiment for {symbol}: 0.0 (placeholder)")
-            return 0.0
+            # Use Fear & Greed Index as market sentiment
+            fear_greed = await self.get_fear_greed_index()
+            if fear_greed is not None:
+                self.logger.info(f"Market sentiment for {symbol}: {fear_greed:.2f} (Fear & Greed Index)")
+                return fear_greed
+            else:
+                self.logger.info(f"Market sentiment for {symbol}: 0.0 (no data available)")
+                return 0.0
             
         except Exception as e:
             self.logger.error(f"Error getting market sentiment: {e}")
@@ -195,11 +395,15 @@ class SentimentAnalyzer:
             sentiment_scores = []
             weights = []
             
-            # Get news sentiment
+            # Get news sentiment (try multiple sources)
             news_sentiment = await self.get_finnhub_news_sentiment(symbol)
+            if news_sentiment is None:
+                # Fallback to NewsAPI if Finnhub fails
+                news_sentiment = await self.get_newsapi_sentiment(symbol)
+            
             if news_sentiment is not None:
                 sentiment_scores.append(news_sentiment)
-                weights.append(0.6)  # 60% weight for news
+                weights.append(0.5)  # 50% weight for news
             
             # Get social sentiment
             social_sentiment = await self.get_social_sentiment(symbol)
@@ -269,3 +473,40 @@ class SentimentAnalyzer:
             return "Negative"
         else:
             return "Very Negative"
+    
+    def _analyze_text_sentiment(self, text: str) -> float:
+        """
+        Simple text sentiment analysis using keyword matching
+        Returns sentiment score between -1 and 1
+        """
+        if not text:
+            return 0.0
+        
+        text = text.lower()
+        
+        positive_words = [
+            'bullish', 'bull', 'rally', 'moon', 'pump', 'surge', 'breakout', 
+            'strong', 'support', 'uptrend', 'gain', 'profit', 'buy', 'long',
+            'positive', 'good', 'great', 'excellent', 'amazing', 'rising',
+            'growth', 'increase', 'higher', 'up', 'green', 'win'
+        ]
+        
+        negative_words = [
+            'bearish', 'bear', 'crash', 'dump', 'drop', 'fall', 'breakdown',
+            'weak', 'resistance', 'downtrend', 'loss', 'sell', 'short',
+            'negative', 'bad', 'terrible', 'awful', 'falling', 'decline',
+            'decrease', 'lower', 'down', 'red', 'lose', 'correction'
+        ]
+        
+        positive_count = sum(1 for word in positive_words if word in text)
+        negative_count = sum(1 for word in negative_words if word in text)
+        
+        total_words = positive_count + negative_count
+        if total_words == 0:
+            return 0.0
+        
+        # Calculate sentiment score
+        sentiment = (positive_count - negative_count) / total_words
+        
+        # Normalize to reasonable range (-0.5 to 0.5 for keyword analysis)
+        return max(-0.5, min(0.5, sentiment))

@@ -11,6 +11,8 @@ api_keys:
   binance_key: "your_binance_api_key"
   binance_secret: "your_binance_secret_key"
   finnhub_key: "your_finnhub_api_key"
+  newsapi_key: "your_newsapi_key"
+  cryptocompare_key: "your_cryptocompare_key"
   telegram_token: "your_telegram_bot_token"
 
 # Telegram Configuration
