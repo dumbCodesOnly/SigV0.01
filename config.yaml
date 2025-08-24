@@ -37,7 +37,7 @@ signals:
 
 # Sentiment Analysis Configuration
 sentiment:
-  threshold: 0.1  # minimum sentiment score for signal alignment (lowered for better signal generation)
+  threshold: 0.01  # minimum sentiment score for signal alignment (very low to allow signals with limited sentiment data)
   cache_duration: 300  # seconds
 
 # Risk Management Configuration
