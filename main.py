@@ -420,6 +420,11 @@ def index():
                 overflow: hidden;
             }
             
+            #status-cards-content {
+                transition: all 0.3s ease-in-out;
+                overflow: hidden;
+            }
+            
             @media (max-width: 768px) {
                 .metric-value { font-size: 2rem; }
                 .header-title { font-size: 2rem; }
@@ -443,50 +448,70 @@ def index():
             
             <!-- Status Cards -->
             <div class="row g-4 mb-4">
-                <div class="col-lg-3 col-md-6">
-                    <div class="status-card running text-white p-4">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div class="flex-grow-1">
-                                <div class="metric-label">Bot Status</div>
-                                <div class="metric-value" id="status">Loading...</div>
-                            </div>
-                            <i data-feather="activity" class="icon-large"></i>
+                <div class="col-12">
+                    <div class="signal-card p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h4 class="text-white mb-0">
+                                <i data-feather="activity" class="me-2"></i>
+                                Bot Status
+                            </h4>
+                            <button class="btn btn-outline-light btn-sm" onclick="toggleStatusCards()" id="status-toggle-btn">
+                                <i data-feather="chevron-up" class="me-1"></i>
+                                Collapse
+                            </button>
                         </div>
-                    </div>
-                </div>
-                
-                <div class="col-lg-3 col-md-6">
-                    <div class="status-card signals text-white p-4">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div class="flex-grow-1">
-                                <div class="metric-label">Total Signals</div>
-                                <div class="metric-value" id="signals">0</div>
+                        
+                        <!-- Collapsible Status Cards Content -->
+                        <div id="status-cards-content">
+                            <div class="row g-4">
+                                <div class="col-lg-3 col-md-6">
+                                    <div class="status-card running text-white p-4">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div class="flex-grow-1">
+                                                <div class="metric-label">Bot Status</div>
+                                                <div class="metric-value" id="status">Loading...</div>
+                                            </div>
+                                            <i data-feather="activity" class="icon-large"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-lg-3 col-md-6">
+                                    <div class="status-card signals text-white p-4">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div class="flex-grow-1">
+                                                <div class="metric-label">Total Signals</div>
+                                                <div class="metric-value" id="signals">0</div>
+                                            </div>
+                                            <i data-feather="zap" class="icon-large"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-lg-3 col-md-6">
+                                    <div class="status-card price text-white p-4">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div class="flex-grow-1">
+                                                <div class="metric-label">Symbols Tracking</div>
+                                                <div class="metric-value" id="symbol-count">5</div>
+                                            </div>
+                                            <i data-feather="eye" class="icon-large"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-lg-3 col-md-6">
+                                    <div class="status-card change text-white p-4">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div class="flex-grow-1">
+                                                <div class="metric-label">Timeframes</div>
+                                                <div class="metric-value" id="timeframe-count">4</div>
+                                            </div>
+                                            <i data-feather="clock" class="icon-large"></i>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <i data-feather="zap" class="icon-large"></i>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-lg-3 col-md-6">
-                    <div class="status-card price text-white p-4">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div class="flex-grow-1">
-                                <div class="metric-label">Symbols Tracking</div>
-                                <div class="metric-value" id="symbol-count">5</div>
-                            </div>
-                            <i data-feather="eye" class="icon-large"></i>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="col-lg-3 col-md-6">
-                    <div class="status-card change text-white p-4">
-                        <div class="d-flex justify-content-between align-items-start">
-                            <div class="flex-grow-1">
-                                <div class="metric-label">Timeframes</div>
-                                <div class="metric-value" id="timeframe-count">4</div>
-                            </div>
-                            <i data-feather="clock" class="icon-large"></i>
                         </div>
                     </div>
                 </div>
@@ -826,6 +851,38 @@ def index():
                         detailsElement.style.height = 'auto';
                     }, 300);
                     expandBtn.innerHTML = '<i data-feather="chevron-up" class="me-1"></i>Hide Details';
+                }
+                
+                feather.replace();
+            }
+            
+            function toggleStatusCards() {
+                const contentElement = document.getElementById('status-cards-content');
+                const toggleBtn = document.getElementById('status-toggle-btn');
+                const isExpanded = contentElement.style.display !== 'none';
+                
+                if (isExpanded) {
+                    contentElement.style.height = contentElement.scrollHeight + 'px';
+                    setTimeout(() => {
+                        contentElement.style.height = '0px';
+                        contentElement.style.opacity = '0';
+                    }, 10);
+                    setTimeout(() => {
+                        contentElement.style.display = 'none';
+                    }, 300);
+                    toggleBtn.innerHTML = '<i data-feather="chevron-down" class="me-1"></i>Expand';
+                } else {
+                    contentElement.style.display = 'block';
+                    contentElement.style.height = '0px';
+                    contentElement.style.opacity = '0';
+                    setTimeout(() => {
+                        contentElement.style.height = contentElement.scrollHeight + 'px';
+                        contentElement.style.opacity = '1';
+                    }, 10);
+                    setTimeout(() => {
+                        contentElement.style.height = 'auto';
+                    }, 300);
+                    toggleBtn.innerHTML = '<i data-feather="chevron-up" class="me-1"></i>Collapse';
                 }
                 
                 feather.replace();
