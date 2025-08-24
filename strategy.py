@@ -37,41 +37,54 @@ class TradingStrategy:
         try:
             df_copy = df.copy()
             
-            # EMAs
-            df_copy['ema_fast'] = ta.ema(df_copy['close'], length=self.ema_fast)
-            df_copy['ema_slow'] = ta.ema(df_copy['close'], length=self.ema_slow)
+            if PANDAS_TA_AVAILABLE and ta is not None:
+                # Use pandas_ta for calculations
+                df_copy.ta.strategy('all')  # This adds all common indicators
+                
+                # Add specific indicators we need
+                df_copy['ema_fast'] = ta.ema(df_copy['close'], length=self.ema_fast)
+                df_copy['ema_slow'] = ta.ema(df_copy['close'], length=self.ema_slow)
+                df_copy['rsi'] = ta.rsi(df_copy['close'], length=self.rsi_period)
+                df_copy['atr'] = ta.atr(df_copy['high'], df_copy['low'], df_copy['close'], length=self.atr_period)
+                
+                # Bollinger Bands
+                bb = ta.bbands(df_copy['close'], length=self.bb_period, std=self.bb_std)
+                if bb is not None:
+                    df_copy['bb_upper'] = bb[f'BBU_{self.bb_period}_{self.bb_std}']
+                    df_copy['bb_middle'] = bb[f'BBM_{self.bb_period}_{self.bb_std}']
+                    df_copy['bb_lower'] = bb[f'BBL_{self.bb_period}_{self.bb_std}']
+                    df_copy['bb_width'] = (df_copy['bb_upper'] - df_copy['bb_lower']) / df_copy['bb_middle'] * 100
+                
+                df_copy['volume_sma'] = ta.sma(df_copy['volume'], length=20)
+            else:
+                # Manual calculations as fallback
+                self._calculate_indicators_manual(df_copy)
             
-            # RSI
-            df_copy['rsi'] = ta.rsi(df_copy['close'], length=self.rsi_period)
-            
-            # ATR
-            df_copy['atr'] = ta.atr(df_copy['high'], df_copy['low'], df_copy['close'], length=self.atr_period)
-            
-            # Bollinger Bands
-            bb = ta.bbands(df_copy['close'], length=self.bb_period, std=self.bb_std)
-            if bb is not None:
-                df_copy['bb_upper'] = bb[f'BBU_{self.bb_period}_{self.bb_std}']
-                df_copy['bb_middle'] = bb[f'BBM_{self.bb_period}_{self.bb_std}']
-                df_copy['bb_lower'] = bb[f'BBL_{self.bb_period}_{self.bb_std}']
-                df_copy['bb_width'] = (df_copy['bb_upper'] - df_copy['bb_lower']) / df_copy['bb_middle'] * 100
-            
-            # Additional indicators
-            df_copy['volume_sma'] = ta.sma(df_copy['volume'], length=20)
+            # Additional calculations
             df_copy['price_change'] = df_copy['close'].pct_change()
             
-            # Trend direction
-            df_copy['trend'] = np.where(df_copy['ema_fast'] > df_copy['ema_slow'], 1, -1)
+            # Trend direction (ensure columns exist)
+            if 'ema_fast' in df_copy.columns and 'ema_slow' in df_copy.columns:
+                df_copy['trend'] = np.where(df_copy['ema_fast'] > df_copy['ema_slow'], 1, -1)
+            else:
+                df_copy['trend'] = 0  # neutral if indicators missing
             
             # Support and resistance levels
-            df_copy['swing_high'] = self._identify_swing_highs(df_copy['high'])
-            df_copy['swing_low'] = self._identify_swing_lows(df_copy['low'])
+            if 'high' in df_copy.columns and 'low' in df_copy.columns:
+                high_series = df_copy['high']  # Ensure it's a Series
+                low_series = df_copy['low']    # Ensure it's a Series
+                df_copy['swing_high'] = self._identify_swing_highs(high_series)
+                df_copy['swing_low'] = self._identify_swing_lows(low_series)
+            else:
+                df_copy['swing_high'] = pd.Series(index=df_copy.index, dtype=float)
+                df_copy['swing_low'] = pd.Series(index=df_copy.index, dtype=float)
             
             self.logger.debug(f"Calculated indicators for {len(df_copy)} candles")
             return df_copy
             
         except Exception as e:
             self.logger.error(f"Error calculating indicators: {e}")
-            return df
+            return self._calculate_indicators_manual(df.copy())
     
     def _identify_swing_highs(self, high_series: pd.Series, window: int = 5) -> pd.Series:
         """Identify swing highs"""
@@ -98,6 +111,46 @@ class TradingStrategy:
             return swing_lows
         except Exception:
             return pd.Series(index=low_series.index, dtype=float)
+    
+    def _calculate_indicators_manual(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Manual indicator calculations as fallback"""
+        try:
+            # Simple EMA calculation
+            alpha_fast = 2 / (self.ema_fast + 1)
+            alpha_slow = 2 / (self.ema_slow + 1)
+            
+            df['ema_fast'] = df['close'].ewm(alpha=alpha_fast).mean()
+            df['ema_slow'] = df['close'].ewm(alpha=alpha_slow).mean()
+            
+            # Simple RSI calculation
+            delta = df['close'].diff()
+            gain = (delta.where(delta > 0, 0)).rolling(window=self.rsi_period).mean()
+            loss = (-delta.where(delta < 0, 0)).rolling(window=self.rsi_period).mean()
+            rs = gain / loss
+            df['rsi'] = 100 - (100 / (1 + rs))
+            
+            # Simple ATR calculation
+            tr1 = df['high'] - df['low']
+            tr2 = abs(df['high'] - df['close'].shift())
+            tr3 = abs(df['low'] - df['close'].shift())
+            tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+            df['atr'] = tr.rolling(window=self.atr_period).mean()
+            
+            # Simple Bollinger Bands
+            df['bb_middle'] = df['close'].rolling(window=self.bb_period).mean()
+            bb_std = df['close'].rolling(window=self.bb_period).std()
+            df['bb_upper'] = df['bb_middle'] + (bb_std * self.bb_std)
+            df['bb_lower'] = df['bb_middle'] - (bb_std * self.bb_std)
+            df['bb_width'] = (df['bb_upper'] - df['bb_lower']) / df['bb_middle'] * 100
+            
+            # Volume SMA
+            df['volume_sma'] = df['volume'].rolling(window=20).mean()
+            
+            return df
+            
+        except Exception as e:
+            self.logger.error(f"Error in manual indicator calculation: {e}")
+            return df
     
     def detect_bollinger_squeeze(self, df: pd.DataFrame) -> Tuple[bool, Optional[str]]:
         """
