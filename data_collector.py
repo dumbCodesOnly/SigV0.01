@@ -14,7 +14,16 @@ class DataCollector:
     def __init__(self, config: Dict[str, Any]):
         self.config = config
         self.logger = logging.getLogger(__name__)
-        self.base_url = "https://api.binance.com/api/v3"
+        # Multiple Binance API endpoints for fallback
+        self.binance_endpoints = [
+            "https://api.binance.com/api/v3",           # Primary endpoint
+            "https://data-api.binance.vision/api/v3",   # Market data only endpoint
+            "https://api1.binance.com/api/v3",          # Alternative 1
+            "https://api2.binance.com/api/v3",          # Alternative 2
+            "https://api3.binance.com/api/v3",          # Alternative 3
+            "https://api4.binance.com/api/v3"           # Alternative 4
+        ]
+        self.current_endpoint_index = 0
         self.session = None
         
     async def _get_session(self) -> aiohttp.ClientSession:
@@ -56,20 +65,38 @@ class DataCollector:
     
     async def get_ohlcv_data(self, symbol: str, timeframe: str, limit: int = 200) -> Optional[pd.DataFrame]:
         """
-        Get OHLCV data from Binance API with CoinGecko fallback
+        Get OHLCV data from Binance API with multiple endpoint fallbacks, then CoinGecko
         Returns DataFrame with columns: timestamp, open, high, low, close, volume
         """
-        # Try Binance first
-        binance_data = await self._get_binance_data(symbol, timeframe, limit)
+        # Try all Binance endpoints
+        binance_data = await self._get_binance_data_with_fallback(symbol, timeframe, limit)
         if binance_data is not None:
             return binance_data
         
-        # Fallback to CoinGecko
-        self.logger.info("Binance API unavailable, using CoinGecko fallback")
+        # Final fallback to CoinGecko
+        self.logger.info("All Binance endpoints unavailable, using CoinGecko fallback")
         return await self._get_coingecko_data(symbol, timeframe, limit)
     
-    async def _get_binance_data(self, symbol: str, timeframe: str, limit: int) -> Optional[pd.DataFrame]:
-        """Get data from Binance API"""
+    async def _get_binance_data_with_fallback(self, symbol: str, timeframe: str, limit: int) -> Optional[pd.DataFrame]:
+        """Try all Binance endpoints with fallback"""
+        for i, base_url in enumerate(self.binance_endpoints):
+            try:
+                self.logger.debug(f"Trying Binance endpoint {i+1}/{len(self.binance_endpoints)}: {base_url}")
+                data = await self._get_binance_data_from_endpoint(symbol, timeframe, limit, base_url)
+                if data is not None:
+                    if i != self.current_endpoint_index:
+                        self.logger.info(f"Switched to Binance endpoint: {base_url}")
+                        self.current_endpoint_index = i
+                    return data
+            except Exception as e:
+                self.logger.warning(f"Binance endpoint {base_url} failed: {e}")
+                continue
+        
+        self.logger.error("All Binance endpoints failed")
+        return None
+
+    async def _get_binance_data_from_endpoint(self, symbol: str, timeframe: str, limit: int, base_url: str) -> Optional[pd.DataFrame]:
+        """Get data from specific Binance API endpoint"""
         try:
             session = await self._get_session()
             interval = self._timeframe_to_interval(timeframe)
@@ -80,7 +107,7 @@ class DataCollector:
                 'limit': limit
             }
             
-            url = f"{self.base_url}/klines"
+            url = f"{base_url}/klines"
             
             async with session.get(url, params=params) as response:
                 if response.status == 200:
@@ -217,53 +244,61 @@ class DataCollector:
             return df.tail(limit)
     
     async def get_current_price(self, symbol: str) -> Optional[float]:
-        """Get current price for a symbol"""
-        try:
-            session = await self._get_session()
-            
-            params = {'symbol': symbol.upper()}
-            url = f"{self.base_url}/ticker/price"
-            
-            async with session.get(url, params=params) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    return float(data['price'])
-                else:
-                    self.logger.error(f"Error getting current price: {response.status}")
-                    return None
-                    
-        except Exception as e:
-            self.logger.error(f"Error fetching current price: {e}")
-            return None
+        """Get current price for a symbol with endpoint fallback"""
+        for base_url in self.binance_endpoints:
+            try:
+                session = await self._get_session()
+                
+                params = {'symbol': symbol.upper()}
+                url = f"{base_url}/ticker/price"
+                
+                async with session.get(url, params=params) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        return float(data['price'])
+                    else:
+                        self.logger.warning(f"Price endpoint {base_url} returned: {response.status}")
+                        continue
+                        
+            except Exception as e:
+                self.logger.warning(f"Price endpoint {base_url} failed: {e}")
+                continue
+                
+        self.logger.error("All price endpoints failed")
+        return None
     
     async def get_24h_ticker(self, symbol: str) -> Optional[Dict[str, Any]]:
-        """Get 24h ticker statistics"""
-        try:
-            session = await self._get_session()
-            
-            params = {'symbol': symbol.upper()}
-            url = f"{self.base_url}/ticker/24hr"
-            
-            async with session.get(url, params=params) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    return {
-                        'symbol': data['symbol'],
-                        'price_change': float(data['priceChange']),
-                        'price_change_percent': float(data['priceChangePercent']),
-                        'weighted_avg_price': float(data['weightedAvgPrice']),
-                        'last_price': float(data['lastPrice']),
-                        'volume': float(data['volume']),
-                        'high_price': float(data['highPrice']),
-                        'low_price': float(data['lowPrice'])
-                    }
-                else:
-                    self.logger.error(f"Error getting 24h ticker: {response.status}")
-                    return None
-                    
-        except Exception as e:
-            self.logger.error(f"Error fetching 24h ticker: {e}")
-            return None
+        """Get 24h ticker statistics with endpoint fallback"""
+        for base_url in self.binance_endpoints:
+            try:
+                session = await self._get_session()
+                
+                params = {'symbol': symbol.upper()}
+                url = f"{base_url}/ticker/24hr"
+                
+                async with session.get(url, params=params) as response:
+                    if response.status == 200:
+                        data = await response.json()
+                        return {
+                            'symbol': data['symbol'],
+                            'price_change': float(data['priceChange']),
+                            'price_change_percent': float(data['priceChangePercent']),
+                            'weighted_avg_price': float(data['weightedAvgPrice']),
+                            'last_price': float(data['lastPrice']),
+                            'volume': float(data['volume']),
+                            'high_price': float(data['highPrice']),
+                            'low_price': float(data['lowPrice'])
+                        }
+                    else:
+                        self.logger.warning(f"Ticker endpoint {base_url} returned: {response.status}")
+                        continue
+                        
+            except Exception as e:
+                self.logger.warning(f"Ticker endpoint {base_url} failed: {e}")
+                continue
+                
+        self.logger.error("All ticker endpoints failed")
+        return None
     
     def validate_data(self, df: pd.DataFrame) -> bool:
         """Validate OHLCV data quality"""
