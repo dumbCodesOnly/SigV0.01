@@ -477,79 +477,6 @@ def index():
                 </p>
             </div>
             
-            <!-- Status Cards -->
-            <div class="row g-3 mb-3">
-                <div class="col-12">
-                    <div class="signal-card p-3">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h4 class="text-white mb-0">
-                                <i data-feather="activity" class="me-2"></i>
-                                Bot Status
-                            </h4>
-                            <div class="d-flex gap-2">
-                                <button class="custom-btn" onclick="toggleStatusCards()" id="status-toggle-btn">
-                                    <i data-feather="chevron-down" class="me-1"></i>
-                                    Expand
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <!-- Collapsible Status Cards Content -->
-                        <div id="status-cards-content" style="display: none;">
-                            <div class="row g-3">
-                                <div class="col-lg-3 col-md-6">
-                                    <div class="status-card running text-white p-3">
-                                        <div class="d-flex justify-content-between align-items-start">
-                                            <div class="flex-grow-1">
-                                                <div class="metric-label">Bot Status</div>
-                                                <div class="metric-value" id="status">Loading...</div>
-                                            </div>
-                                            <i data-feather="activity" class="icon-large"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-lg-3 col-md-6">
-                                    <div class="status-card signals text-white p-3">
-                                        <div class="d-flex justify-content-between align-items-start">
-                                            <div class="flex-grow-1">
-                                                <div class="metric-label">Total Signals</div>
-                                                <div class="metric-value" id="signals">0</div>
-                                            </div>
-                                            <i data-feather="zap" class="icon-large"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-lg-3 col-md-6">
-                                    <div class="status-card price text-white p-3">
-                                        <div class="d-flex justify-content-between align-items-start">
-                                            <div class="flex-grow-1">
-                                                <div class="metric-label">Symbols Tracking</div>
-                                                <div class="metric-value" id="symbol-count">5</div>
-                                            </div>
-                                            <i data-feather="eye" class="icon-large"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-lg-3 col-md-6">
-                                    <div class="status-card change text-white p-3">
-                                        <div class="d-flex justify-content-between align-items-start">
-                                            <div class="flex-grow-1">
-                                                <div class="metric-label">Timeframes</div>
-                                                <div class="metric-value" id="timeframe-count">4</div>
-                                            </div>
-                                            <i data-feather="clock" class="icon-large"></i>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
             <!-- Cryptocurrency Market Data -->
             <div class="row g-3 mb-3">
                 <div class="col-12">
@@ -634,6 +561,79 @@ def index():
                                 <i data-feather="clock" class="mb-3" style="width: 64px; height: 64px; opacity: 0.3;"></i>
                                 <h5 class="text-white-50">No signals generated yet</h5>
                                 <p class="text-white-50 mb-0">The bot is analyzing market conditions...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Bot Status (moved to bottom) -->
+            <div class="row g-3 mb-3 mt-5">
+                <div class="col-12">
+                    <div class="signal-card p-3">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h4 class="text-white mb-0">
+                                <i data-feather="activity" class="me-2"></i>
+                                Bot Status
+                            </h4>
+                            <div class="d-flex gap-2">
+                                <button class="custom-btn" onclick="toggleStatusCards()" id="status-toggle-btn">
+                                    <i data-feather="chevron-down" class="me-1"></i>
+                                    Expand
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Collapsible Status Cards Content -->
+                        <div id="status-cards-content" style="display: none;">
+                            <div class="row g-3">
+                                <div class="col-lg-3 col-md-6">
+                                    <div class="status-card running text-white p-3">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div class="flex-grow-1">
+                                                <div class="metric-label">Bot Status</div>
+                                                <div class="metric-value" id="status">Loading...</div>
+                                            </div>
+                                            <i data-feather="activity" class="icon-large"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-lg-3 col-md-6">
+                                    <div class="status-card signals text-white p-3">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div class="flex-grow-1">
+                                                <div class="metric-label">Total Signals</div>
+                                                <div class="metric-value" id="signals">0</div>
+                                            </div>
+                                            <i data-feather="zap" class="icon-large"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-lg-3 col-md-6">
+                                    <div class="status-card price text-white p-3">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div class="flex-grow-1">
+                                                <div class="metric-label">Symbols Tracking</div>
+                                                <div class="metric-value" id="symbol-count">5</div>
+                                            </div>
+                                            <i data-feather="eye" class="icon-large"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-lg-3 col-md-6">
+                                    <div class="status-card change text-white p-3">
+                                        <div class="d-flex justify-content-between align-items-start">
+                                            <div class="flex-grow-1">
+                                                <div class="metric-label">Timeframes</div>
+                                                <div class="metric-value" id="timeframe-count">4</div>
+                                            </div>
+                                            <i data-feather="clock" class="icon-large"></i>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
