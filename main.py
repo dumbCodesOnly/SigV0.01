@@ -949,7 +949,16 @@ def index():
                 const signalContainer = document.getElementById('latest-signal');
                 const signal = allSignals[currentSignalIndex];
                 
-                if (!signal) return;
+                if (!signal) {
+                    signalContainer.innerHTML = `
+                        <div class="text-center py-5">
+                            <i data-feather="search" class="mb-3" style="width: 64px; height: 64px; opacity: 0.3;"></i>
+                            <h5 class="text-white-50">Analyzing Multiple Markets</h5>
+                            <p class="text-white-50 mb-0">Monitoring BTC, ETH, BNB, SOL, XRP across 5m, 15m, 1h, 4h timeframes</p>
+                        </div>
+                    `;
+                    return;
+                }
                 
                 const directionColor = signal.direction === 'LONG' ? '#4facfe' : '#ff6b6b';
                 const directionIcon = signal.direction === 'LONG' ? 'trending-up' : 'trending-down';
@@ -1008,15 +1017,6 @@ def index():
                         </div>
                     `;
                     feather.replace();
-                } else {
-                    signalContainer.innerHTML = `
-                        <div class="text-center py-5">
-                            <i data-feather="search" class="mb-3" style="width: 64px; height: 64px; opacity: 0.3;"></i>
-                            <h5 class="text-white-50">Analyzing Multiple Markets</h5>
-                            <p class="text-white-50 mb-0">Monitoring BTC, ETH, BNB, SOL, XRP across 5m, 15m, 1h, 4h timeframes</p>
-                        </div>
-                    `;
-                }
             }
             
             function showErrorState() {
