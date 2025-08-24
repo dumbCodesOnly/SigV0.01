@@ -325,17 +325,18 @@ def index():
             .btn-modern {
                 background: linear-gradient(135deg, #4facfe 0%, #00d4aa 100%);
                 border: none;
-                border-radius: 12px;
-                padding: 12px 24px;
+                border-radius: 8px;
+                padding: 6px 12px;
                 font-weight: 600;
                 color: #ffffff;
                 transition: all 0.3s ease;
-                box-shadow: 0 4px 15px rgba(79, 172, 254, 0.3);
+                box-shadow: 0 2px 8px rgba(79, 172, 254, 0.2);
+                font-size: 0.875rem;
             }
             
             .btn-modern:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 8px 25px rgba(79, 172, 254, 0.5);
+                transform: translateY(-1px);
+                box-shadow: 0 4px 12px rgba(79, 172, 254, 0.4);
                 background: linear-gradient(135deg, #00d4aa 0%, #4facfe 100%);
                 border: none;
                 color: #ffffff;
@@ -392,11 +393,14 @@ def index():
                 color: var(--text-primary);
                 border-color: rgba(255, 255, 255, 0.3);
                 background: transparent;
+                border-radius: 8px;
+                font-size: 0.875rem;
             }
             
             .btn-outline-light:hover {
                 color: var(--background-dark);
                 background-color: rgba(255, 255, 255, 0.9);
+                transform: translateY(-1px);
                 border-color: rgba(255, 255, 255, 0.9);
             }
             
@@ -532,7 +536,7 @@ def index():
                                     Collapse
                                 </button>
                                 <button class="btn btn-modern" onclick="refreshData()">
-                                    <i data-feather="refresh-cw" class="me-2"></i>
+                                    <i data-feather="refresh-cw" class="me-1"></i>
                                     Refresh
                                 </button>
                             </div>
