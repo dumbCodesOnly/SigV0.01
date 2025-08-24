@@ -488,14 +488,14 @@ def index():
                             </h4>
                             <div class="d-flex gap-2">
                                 <button class="custom-btn" onclick="toggleStatusCards()" id="status-toggle-btn">
-                                    <i data-feather="chevron-up" class="me-1"></i>
-                                    Collapse
+                                    <i data-feather="chevron-down" class="me-1"></i>
+                                    Expand
                                 </button>
                             </div>
                         </div>
                         
                         <!-- Collapsible Status Cards Content -->
-                        <div id="status-cards-content">
+                        <div id="status-cards-content" style="display: none;">
                             <div class="row g-3">
                                 <div class="col-lg-3 col-md-6">
                                     <div class="status-card running text-white p-3">
@@ -561,8 +561,8 @@ def index():
                             </h4>
                             <div class="d-flex gap-2">
                                 <button class="custom-btn" onclick="toggleMarketOverview()" id="market-toggle-btn">
-                                    <i data-feather="chevron-up" class="me-1"></i>
-                                    Collapse
+                                    <i data-feather="chevron-down" class="me-1"></i>
+                                    Expand
                                 </button>
                                 <button class="custom-btn" onclick="refreshData()">
                                     <i data-feather="refresh-cw" class="me-1"></i>
@@ -572,7 +572,7 @@ def index():
                         </div>
                         
                         <!-- Collapsible Market Content -->
-                        <div id="market-overview-content">
+                        <div id="market-overview-content" style="display: none;">
                             <div id="crypto-grid" class="row g-3">
                                 <!-- Crypto cards will be populated by JavaScript -->
                             </div>
