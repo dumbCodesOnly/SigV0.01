@@ -389,38 +389,46 @@ def index():
                 border: 1px solid rgba(79, 172, 254, 0.3);
             }
             
-            .btn-outline-light {
-                color: var(--text-primary) !important;
-                border-color: rgba(255, 255, 255, 0.3) !important;
-                background: transparent !important;
-                border-radius: 8px !important;
-                font-size: 0.875rem !important;
-                padding: 6px 12px !important;
-                font-weight: 600 !important;
-                transition: all 0.3s ease !important;
-                border-width: 1px !important;
-                border-style: solid !important;
+            .custom-btn {
+                display: inline-block;
+                color: var(--text-primary);
+                border: 1px solid rgba(255, 255, 255, 0.3);
+                background: transparent;
+                border-radius: 8px;
+                font-size: 0.875rem;
+                padding: 6px 12px;
+                font-weight: 600;
+                line-height: 1.5;
+                text-align: center;
+                text-decoration: none;
+                vertical-align: middle;
+                cursor: pointer;
+                user-select: none;
+                transition: all 0.3s ease;
+                font-family: 'Inter', sans-serif;
             }
             
-            .btn-outline-light:hover {
-                color: var(--background-dark) !important;
-                background-color: rgba(255, 255, 255, 0.9) !important;
-                transform: translateY(-1px) !important;
-                border-color: rgba(255, 255, 255, 0.9) !important;
-                border-radius: 8px !important;
+            .custom-btn:hover {
+                color: var(--background-dark);
+                background-color: rgba(255, 255, 255, 0.9);
+                border-color: rgba(255, 255, 255, 0.9);
+                transform: translateY(-1px);
+                text-decoration: none;
             }
             
-            .btn-outline-light:focus {
-                color: var(--background-dark) !important;
-                background-color: rgba(255, 255, 255, 0.9) !important;
-                border-color: rgba(255, 255, 255, 0.9) !important;
-                box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.25) !important;
+            .custom-btn:focus {
+                color: var(--background-dark);
+                background-color: rgba(255, 255, 255, 0.9);
+                border-color: rgba(255, 255, 255, 0.9);
+                outline: 0;
+                box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.25);
             }
             
-            .btn-outline-light:active {
-                color: var(--background-dark) !important;
-                background-color: rgba(255, 255, 255, 0.9) !important;
-                border-color: rgba(255, 255, 255, 0.9) !important;
+            .custom-btn:active {
+                color: var(--background-dark);
+                background-color: rgba(255, 255, 255, 0.9);
+                border-color: rgba(255, 255, 255, 0.9);
+                transform: translateY(0);
             }
             
             .table-dark {
@@ -479,7 +487,7 @@ def index():
                                 Bot Status
                             </h4>
                             <div class="d-flex gap-2">
-                                <button class="btn btn-outline-light btn-sm" onclick="toggleStatusCards()" id="status-toggle-btn">
+                                <button class="custom-btn" onclick="toggleStatusCards()" id="status-toggle-btn">
                                     <i data-feather="chevron-up" class="me-1"></i>
                                     Collapse
                                 </button>
@@ -552,11 +560,11 @@ def index():
                                 Market Overview
                             </h4>
                             <div class="d-flex gap-2">
-                                <button class="btn btn-outline-light btn-sm" onclick="toggleMarketOverview()" id="market-toggle-btn">
+                                <button class="custom-btn" onclick="toggleMarketOverview()" id="market-toggle-btn">
                                     <i data-feather="chevron-up" class="me-1"></i>
                                     Collapse
                                 </button>
-                                <button class="btn btn-outline-light btn-sm" onclick="refreshData()">
+                                <button class="custom-btn" onclick="refreshData()">
                                     <i data-feather="refresh-cw" class="me-1"></i>
                                     Refresh
                                 </button>
@@ -571,7 +579,7 @@ def index():
                             
                             <!-- Details toggle button -->
                             <div class="text-center mt-3">
-                                <button class="btn btn-outline-light btn-sm" onclick="toggleMarketDetails()" id="details-expand-btn">
+                                <button class="custom-btn" onclick="toggleMarketDetails()" id="details-expand-btn">
                                     <i data-feather="chevron-down" class="me-1"></i>
                                     Show Details
                                 </button>
