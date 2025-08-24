@@ -1007,6 +1007,7 @@ def index():
                             </div>
                         </div>
                     `;
+                    feather.replace();
                 } else {
                     signalContainer.innerHTML = `
                         <div class="text-center py-5">
