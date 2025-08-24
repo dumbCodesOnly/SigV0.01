@@ -797,15 +797,9 @@ if __name__ == "__main__":
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
     
-    # Run both Flask and bot concurrently
-    import threading
-    
-    # Start Flask in a separate thread
-    flask_thread = threading.Thread(target=run_flask, daemon=True)
-    flask_thread.start()
-    
-    # Run bot in main thread
+    # Only run the bot (web server runs separately via gunicorn)
     try:
+        print("Starting Crypto Signal Bot...")
         asyncio.run(run_bot())
     except KeyboardInterrupt:
         print("\nShutdown complete")
