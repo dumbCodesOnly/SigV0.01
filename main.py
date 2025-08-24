@@ -451,10 +451,10 @@ def index():
             </div>
             
             <!-- Status Cards -->
-            <div class="row g-4 mb-4">
+            <div class="row g-3 mb-3">
                 <div class="col-12">
-                    <div class="signal-card p-4">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div class="signal-card p-3">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
                             <h4 class="text-white mb-0">
                                 <i data-feather="activity" class="me-2"></i>
                                 Bot Status
@@ -467,9 +467,9 @@ def index():
                         
                         <!-- Collapsible Status Cards Content -->
                         <div id="status-cards-content">
-                            <div class="row g-4">
+                            <div class="row g-3">
                                 <div class="col-lg-3 col-md-6">
-                                    <div class="status-card running text-white p-4">
+                                    <div class="status-card running text-white p-3">
                                         <div class="d-flex justify-content-between align-items-start">
                                             <div class="flex-grow-1">
                                                 <div class="metric-label">Bot Status</div>
@@ -481,7 +481,7 @@ def index():
                                 </div>
                                 
                                 <div class="col-lg-3 col-md-6">
-                                    <div class="status-card signals text-white p-4">
+                                    <div class="status-card signals text-white p-3">
                                         <div class="d-flex justify-content-between align-items-start">
                                             <div class="flex-grow-1">
                                                 <div class="metric-label">Total Signals</div>
@@ -493,7 +493,7 @@ def index():
                                 </div>
                                 
                                 <div class="col-lg-3 col-md-6">
-                                    <div class="status-card price text-white p-4">
+                                    <div class="status-card price text-white p-3">
                                         <div class="d-flex justify-content-between align-items-start">
                                             <div class="flex-grow-1">
                                                 <div class="metric-label">Symbols Tracking</div>
@@ -505,7 +505,7 @@ def index():
                                 </div>
                                 
                                 <div class="col-lg-3 col-md-6">
-                                    <div class="status-card change text-white p-4">
+                                    <div class="status-card change text-white p-3">
                                         <div class="d-flex justify-content-between align-items-start">
                                             <div class="flex-grow-1">
                                                 <div class="metric-label">Timeframes</div>
@@ -522,10 +522,10 @@ def index():
             </div>
             
             <!-- Cryptocurrency Market Data -->
-            <div class="row g-4 mb-4">
+            <div class="row g-3 mb-3">
                 <div class="col-12">
-                    <div class="signal-card p-4">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div class="signal-card p-3">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
                             <h4 class="text-white mb-0">
                                 <i data-feather="trending-up" class="me-2"></i>
                                 Market Overview
@@ -549,7 +549,7 @@ def index():
                             </div>
                             
                             <!-- Details toggle button -->
-                            <div class="text-center mt-4">
+                            <div class="text-center mt-3">
                                 <button class="btn btn-outline-light btn-sm" onclick="toggleMarketDetails()" id="details-expand-btn">
                                     <i data-feather="chevron-down" class="me-1"></i>
                                     Show Details
@@ -557,7 +557,7 @@ def index():
                             </div>
                             
                             <!-- Expanded market details -->
-                            <div id="market-details" class="mt-4" style="display: none;">
+                            <div id="market-details" class="mt-3" style="display: none;">
                                 <div class="row g-3">
                                     <div class="col-12">
                                         <div class="table-responsive">
