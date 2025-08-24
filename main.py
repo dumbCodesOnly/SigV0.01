@@ -535,7 +535,7 @@ def index():
                                     <i data-feather="chevron-up" class="me-1"></i>
                                     Collapse
                                 </button>
-                                <button class="btn btn-modern" onclick="refreshData()">
+                                <button class="btn btn-outline-light btn-sm" onclick="refreshData()">
                                     <i data-feather="refresh-cw" class="me-1"></i>
                                     Refresh
                                 </button>
