@@ -390,18 +390,37 @@ def index():
             }
             
             .btn-outline-light {
-                color: var(--text-primary);
-                border-color: rgba(255, 255, 255, 0.3);
-                background: transparent;
-                border-radius: 8px;
-                font-size: 0.875rem;
+                color: var(--text-primary) !important;
+                border-color: rgba(255, 255, 255, 0.3) !important;
+                background: transparent !important;
+                border-radius: 8px !important;
+                font-size: 0.875rem !important;
+                padding: 6px 12px !important;
+                font-weight: 600 !important;
+                transition: all 0.3s ease !important;
+                border-width: 1px !important;
+                border-style: solid !important;
             }
             
             .btn-outline-light:hover {
-                color: var(--background-dark);
-                background-color: rgba(255, 255, 255, 0.9);
-                transform: translateY(-1px);
-                border-color: rgba(255, 255, 255, 0.9);
+                color: var(--background-dark) !important;
+                background-color: rgba(255, 255, 255, 0.9) !important;
+                transform: translateY(-1px) !important;
+                border-color: rgba(255, 255, 255, 0.9) !important;
+                border-radius: 8px !important;
+            }
+            
+            .btn-outline-light:focus {
+                color: var(--background-dark) !important;
+                background-color: rgba(255, 255, 255, 0.9) !important;
+                border-color: rgba(255, 255, 255, 0.9) !important;
+                box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.25) !important;
+            }
+            
+            .btn-outline-light:active {
+                color: var(--background-dark) !important;
+                background-color: rgba(255, 255, 255, 0.9) !important;
+                border-color: rgba(255, 255, 255, 0.9) !important;
             }
             
             .table-dark {
