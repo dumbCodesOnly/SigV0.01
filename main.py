@@ -388,6 +388,28 @@ def index():
                 border: 1px solid rgba(79, 172, 254, 0.3);
             }
             
+            .btn-outline-light {
+                color: var(--text-primary);
+                border-color: rgba(255, 255, 255, 0.3);
+                background: transparent;
+            }
+            
+            .btn-outline-light:hover {
+                color: var(--background-dark);
+                background-color: rgba(255, 255, 255, 0.9);
+                border-color: rgba(255, 255, 255, 0.9);
+            }
+            
+            .table-dark {
+                --bs-table-bg: rgba(30, 30, 30, 0.8);
+                --bs-table-border-color: rgba(70, 70, 70, 0.3);
+                color: var(--text-primary);
+            }
+            
+            .table-hover > tbody > tr:hover > td {
+                background-color: rgba(79, 172, 254, 0.1);
+            }
+            
             @media (max-width: 768px) {
                 .metric-value { font-size: 2rem; }
                 .header-title { font-size: 2rem; }
@@ -469,14 +491,45 @@ def index():
                                 <i data-feather="trending-up" class="me-2"></i>
                                 Market Overview
                             </h4>
-                            <button class="btn btn-modern" onclick="refreshData()">
-                                <i data-feather="refresh-cw" class="me-2"></i>
-                                Refresh
-                            </button>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-outline-light btn-sm" onclick="toggleMarketDetails()" id="expand-btn">
+                                    <i data-feather="chevron-down" class="me-1"></i>
+                                    Expand
+                                </button>
+                                <button class="btn btn-modern" onclick="refreshData()">
+                                    <i data-feather="refresh-cw" class="me-2"></i>
+                                    Refresh
+                                </button>
+                            </div>
                         </div>
                         
                         <div id="crypto-grid" class="row g-3">
                             <!-- Crypto cards will be populated by JavaScript -->
+                        </div>
+                        
+                        <!-- Expanded market details -->
+                        <div id="market-details" class="mt-4" style="display: none;">
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <div class="table-responsive">
+                                        <table class="table table-dark table-hover">
+                                            <thead>
+                                                <tr class="text-white-50">
+                                                    <th>Symbol</th>
+                                                    <th>Price</th>
+                                                    <th>24h Change</th>
+                                                    <th>24h High</th>
+                                                    <th>24h Low</th>
+                                                    <th>Volume</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody id="market-table-body">
+                                                <!-- Table rows will be populated by JavaScript -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -612,6 +665,101 @@ def index():
                 });
                 
                 grid.innerHTML = gridHTML;
+                
+                // Update the detailed table as well
+                updateMarketTable(cryptoData);
+            }
+            
+            function updateMarketTable(cryptoData) {
+                const tableBody = document.getElementById('market-table-body');
+                const symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT'];
+                const symbolNames = {
+                    'BTCUSDT': 'Bitcoin',
+                    'ETHUSDT': 'Ethereum', 
+                    'BNBUSDT': 'BNB',
+                    'SOLUSDT': 'Solana',
+                    'XRPUSDT': 'XRP'
+                };
+                
+                let tableHTML = '';
+                
+                symbols.forEach(symbol => {
+                    const data = cryptoData[symbol];
+                    const name = symbolNames[symbol];
+                    const shortSymbol = symbol.replace('USDT', '');
+                    
+                    if (data) {
+                        const changeColor = data.change_percent >= 0 ? '#4facfe' : '#ff6b6b';
+                        const changeIcon = data.change_percent >= 0 ? 'trending-up' : 'trending-down';
+                        
+                        tableHTML += `
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <strong class="text-white">${shortSymbol}</strong>
+                                        <small class="text-white-50 ms-2">${name}</small>
+                                    </div>
+                                </td>
+                                <td class="text-white">$${data.price.toFixed(data.price > 1 ? 2 : 6)}</td>
+                                <td>
+                                    <span style="color: ${changeColor};">
+                                        <i data-feather="${changeIcon}" style="width: 14px; height: 14px;" class="me-1"></i>
+                                        ${data.change_percent >= 0 ? '+' : ''}${data.change_percent.toFixed(2)}%
+                                    </span>
+                                </td>
+                                <td class="text-white-50">$${data.high_24h.toFixed(data.high_24h > 1 ? 2 : 6)}</td>
+                                <td class="text-white-50">$${data.low_24h.toFixed(data.low_24h > 1 ? 2 : 6)}</td>
+                                <td class="text-white-50">${formatVolume(data.volume)}</td>
+                            </tr>
+                        `;
+                    } else {
+                        tableHTML += `
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <strong class="text-white">${shortSymbol}</strong>
+                                        <small class="text-white-50 ms-2">${name}</small>
+                                    </div>
+                                </td>
+                                <td class="text-white-50">Loading...</td>
+                                <td class="text-white-50">---%</td>
+                                <td class="text-white-50">---</td>
+                                <td class="text-white-50">---</td>
+                                <td class="text-white-50">---</td>
+                            </tr>
+                        `;
+                    }
+                });
+                
+                tableBody.innerHTML = tableHTML;
+            }
+            
+            function formatVolume(volume) {
+                if (volume >= 1e9) {
+                    return (volume / 1e9).toFixed(1) + 'B';
+                } else if (volume >= 1e6) {
+                    return (volume / 1e6).toFixed(1) + 'M';
+                } else if (volume >= 1e3) {
+                    return (volume / 1e3).toFixed(1) + 'K';
+                } else {
+                    return volume.toFixed(0);
+                }
+            }
+            
+            function toggleMarketDetails() {
+                const detailsElement = document.getElementById('market-details');
+                const expandBtn = document.getElementById('expand-btn');
+                const isExpanded = detailsElement.style.display !== 'none';
+                
+                if (isExpanded) {
+                    detailsElement.style.display = 'none';
+                    expandBtn.innerHTML = '<i data-feather="chevron-down" class="me-1"></i>Expand';
+                } else {
+                    detailsElement.style.display = 'block';
+                    expandBtn.innerHTML = '<i data-feather="chevron-up" class="me-1"></i>Collapse';
+                }
+                
+                feather.replace();
             }
             
             function updateSignalsDisplay(lastSignals) {
