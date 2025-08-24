@@ -459,10 +459,12 @@ def index():
                                 <i data-feather="activity" class="me-2"></i>
                                 Bot Status
                             </h4>
-                            <button class="btn btn-outline-light btn-sm" onclick="toggleStatusCards()" id="status-toggle-btn">
-                                <i data-feather="chevron-up" class="me-1"></i>
-                                Collapse
-                            </button>
+                            <div class="d-flex gap-2">
+                                <button class="btn btn-outline-light btn-sm" onclick="toggleStatusCards()" id="status-toggle-btn">
+                                    <i data-feather="chevron-up" class="me-1"></i>
+                                    Collapse
+                                </button>
+                            </div>
                         </div>
                         
                         <!-- Collapsible Status Cards Content -->
