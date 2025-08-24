@@ -1117,6 +1117,28 @@ def api_status():
 # Global bot instance
 bot = None
 
+# Start bot in background when Flask starts
+def start_background_bot():
+    """Start the bot in a background thread"""
+    global bot
+    if bot is None:
+        import threading
+        bot = CryptoSignalBot()
+        
+        # Start bot in background thread
+        def run_bot_thread():
+            try:
+                asyncio.run(bot.run())
+            except Exception as e:
+                print(f"Bot error: {e}")
+        
+        thread = threading.Thread(target=run_bot_thread, daemon=True)
+        thread.start()
+        print("Background bot started...")
+
+# Start the bot when Flask loads
+start_background_bot()
+
 def signal_handler(sig, frame):
     """Handle shutdown signals"""
     global bot
