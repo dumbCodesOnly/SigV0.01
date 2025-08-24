@@ -558,58 +558,79 @@ def index():
     """
     return render_template_string(html_template)
 
+async def fetch_btc_price_data():
+    """Fetch BTC price data directly from Binance API"""
+    from data_collector import DataCollector
+    
+    try:
+        # Create a temporary data collector for price fetching
+        temp_config = {"api_keys": {}}  # Empty config is fine for public API calls
+        collector = DataCollector(temp_config)
+        
+        # Get current price
+        current_price = await collector.get_current_price('BTCUSDT')
+        btc_price = round(current_price, 2) if current_price else None
+        
+        # Get 24h ticker data
+        ticker_data = await collector.get_24h_ticker('BTCUSDT')
+        price_change = None
+        price_change_percent = None
+        
+        if ticker_data:
+            price_change = round(ticker_data['price_change'], 2)
+            price_change_percent = round(ticker_data['price_change_percent'], 2)
+        
+        # Close the session
+        await collector.close()
+        
+        return btc_price, price_change, price_change_percent
+        
+    except Exception as e:
+        print(f"Error fetching BTC price data: {e}")
+        return None, None, None
+
 @app.route('/api/status')
 def api_status():
     """API endpoint for bot status"""
     global bot
     
-    # Get real BTC price data
+    # Get real BTC price data directly from API
     btc_price = None
     price_change = None
     price_change_percent = None
     
-    if bot and hasattr(bot, 'data_collector'):
+    try:
+        # Create new event loop for price fetching
+        import asyncio
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        
         try:
-            # Create new event loop for price fetching
-            import asyncio
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
+            btc_price, price_change, price_change_percent = loop.run_until_complete(fetch_btc_price_data())
+        finally:
+            loop.close()
             
-            try:
-                # Get current price
-                current_price = loop.run_until_complete(bot.data_collector.get_current_price('BTCUSDT'))
-                if current_price:
-                    btc_price = round(current_price, 2)
-                
-                # Get 24h ticker data for price change
-                ticker_data = loop.run_until_complete(bot.data_collector.get_24h_ticker('BTCUSDT'))
-                if ticker_data:
-                    price_change = round(ticker_data['price_change'], 2)
-                    price_change_percent = round(ticker_data['price_change_percent'], 2)
-            finally:
-                loop.close()
-                
-        except Exception as e:
-            print(f"Error fetching BTC price: {e}")
+    except Exception as e:
+        print(f"Error in price fetch: {e}")
+    
+    # Bot status (may be None if running under gunicorn)
+    bot_running = False
+    signal_count = 0
+    last_signal = None
     
     if bot:
-        return jsonify({
-            'running': bot.running,
-            'signal_count': bot.signal_count,
-            'last_signal': bot.last_signal,
-            'btc_price': btc_price,
-            'price_change': price_change,
-            'price_change_percent': price_change_percent
-        })
-    else:
-        return jsonify({
-            'running': False, 
-            'signal_count': 0, 
-            'last_signal': None,
-            'btc_price': None,
-            'price_change': None,
-            'price_change_percent': None
-        })
+        bot_running = bot.running
+        signal_count = bot.signal_count
+        last_signal = bot.last_signal
+    
+    return jsonify({
+        'running': bot_running,
+        'signal_count': signal_count,
+        'last_signal': last_signal,
+        'btc_price': btc_price,
+        'price_change': price_change,
+        'price_change_percent': price_change_percent
+    })
 
 # Global bot instance
 bot = None
