@@ -570,16 +570,25 @@ def api_status():
     
     if bot and hasattr(bot, 'data_collector'):
         try:
-            # Get current price
-            current_price = asyncio.run(bot.data_collector.get_current_price('BTCUSDT'))
-            if current_price:
-                btc_price = round(current_price, 2)
+            # Create new event loop for price fetching
+            import asyncio
+            loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(loop)
             
-            # Get 24h ticker data for price change
-            ticker_data = asyncio.run(bot.data_collector.get_24h_ticker('BTCUSDT'))
-            if ticker_data:
-                price_change = round(ticker_data['price_change'], 2)
-                price_change_percent = round(ticker_data['price_change_percent'], 2)
+            try:
+                # Get current price
+                current_price = loop.run_until_complete(bot.data_collector.get_current_price('BTCUSDT'))
+                if current_price:
+                    btc_price = round(current_price, 2)
+                
+                # Get 24h ticker data for price change
+                ticker_data = loop.run_until_complete(bot.data_collector.get_24h_ticker('BTCUSDT'))
+                if ticker_data:
+                    price_change = round(ticker_data['price_change'], 2)
+                    price_change_percent = round(ticker_data['price_change_percent'], 2)
+            finally:
+                loop.close()
+                
         except Exception as e:
             print(f"Error fetching BTC price: {e}")
     
