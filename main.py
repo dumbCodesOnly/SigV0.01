@@ -142,57 +142,266 @@ def index():
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Crypto Signal Bot</title>
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-        <link href="https://cdn.jsdelivr.net/npm/feather-icons@4.28.0/dist/feather.min.css" rel="stylesheet">
+        <title>Crypto Signal Bot - Dashboard</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        <link href="https://cdn.jsdelivr.net/npm/feather-icons@4.29.0/dist/feather.min.css" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
         <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
+        <style>
+            :root {
+                --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+                --warning-gradient: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+                --danger-gradient: linear-gradient(135deg, #ff6b6b 0%, #ffa726 100%);
+                --dark-gradient: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+                --glass-bg: rgba(255, 255, 255, 0.25);
+                --glass-border: rgba(255, 255, 255, 0.18);
+                --shadow-color: rgba(31, 38, 135, 0.2);
+            }
+            
+            * { font-family: 'Inter', sans-serif; }
+            
+            body {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                position: relative;
+            }
+            
+            body::before {
+                content: '';
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-image: 
+                    radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+                    radial-gradient(circle at 75% 75%, rgba(255, 255, 255, 0.1) 0%, transparent 50%);
+                pointer-events: none;
+                z-index: -1;
+            }
+            
+            .glass-card {
+                background: var(--glass-bg);
+                backdrop-filter: blur(20px);
+                border: 1px solid var(--glass-border);
+                border-radius: 20px;
+                box-shadow: 0 8px 32px var(--shadow-color);
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            }
+            
+            .glass-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 20px 40px var(--shadow-color);
+            }
+            
+            .status-card {
+                border: none;
+                border-radius: 16px;
+                backdrop-filter: blur(20px);
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                position: relative;
+                overflow: hidden;
+            }
+            
+            .status-card::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: inherit;
+                opacity: 0.9;
+                z-index: -1;
+            }
+            
+            .status-card:hover {
+                transform: translateY(-8px) scale(1.02);
+                box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+            }
+            
+            .status-card.running { background: var(--success-gradient); }
+            .status-card.signals { background: var(--primary-gradient); }
+            .status-card.price { background: var(--warning-gradient); }
+            .status-card.change { background: var(--danger-gradient); }
+            
+            .metric-value {
+                font-size: 2.5rem;
+                font-weight: 700;
+                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                margin: 0;
+                line-height: 1;
+            }
+            
+            .metric-label {
+                font-size: 0.9rem;
+                font-weight: 500;
+                opacity: 0.9;
+                margin-bottom: 8px;
+            }
+            
+            .icon-large {
+                width: 48px;
+                height: 48px;
+                opacity: 0.3;
+            }
+            
+            .signal-card {
+                background: var(--glass-bg);
+                backdrop-filter: blur(20px);
+                border: 1px solid var(--glass-border);
+                border-radius: 20px;
+                position: relative;
+                overflow: hidden;
+            }
+            
+            .signal-card::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                width: 4px;
+                height: 100%;
+                background: var(--primary-gradient);
+            }
+            
+            .btn-modern {
+                background: var(--primary-gradient);
+                border: none;
+                border-radius: 12px;
+                padding: 12px 24px;
+                font-weight: 600;
+                transition: all 0.3s ease;
+                box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            }
+            
+            .btn-modern:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 25px rgba(102, 126, 234, 0.6);
+                background: var(--primary-gradient);
+                border: none;
+            }
+            
+            .loading-pulse {
+                display: inline-block;
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: currentColor;
+                animation: pulse 1.5s ease-in-out infinite;
+            }
+            
+            @keyframes pulse {
+                0%, 100% { opacity: 1; }
+                50% { opacity: 0.3; }
+            }
+            
+            .header-title {
+                font-size: 2.5rem;
+                font-weight: 700;
+                color: white;
+                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                margin: 0;
+            }
+            
+            .last-update {
+                font-size: 0.9rem;
+                opacity: 0.8;
+            }
+            
+            @media (max-width: 768px) {
+                .metric-value { font-size: 2rem; }
+                .header-title { font-size: 2rem; }
+                .status-card { margin-bottom: 1rem; }
+            }
+        </style>
     </head>
-    <body class="bg-light">
-        <div class="container py-5">
-            <div class="row">
-                <div class="col-md-8 mx-auto">
-                    <div class="card shadow">
-                        <div class="card-header bg-primary text-white">
-                            <h1 class="card-title mb-0">
-                                <i data-feather="trending-up" class="me-2"></i>
-                                Crypto Signal Bot
-                            </h1>
+    <body>
+        <div class="container-fluid py-4">
+            <!-- Header -->
+            <div class="text-center mb-5">
+                <h1 class="header-title mb-2">
+                    <i data-feather="trending-up" class="me-3"></i>
+                    Crypto Signal Bot
+                </h1>
+                <p class="text-white-50 last-update" id="last-update">
+                    <i data-feather="clock" class="me-2"></i>
+                    Last updated: <span class="loading-pulse"></span>
+                </p>
+            </div>
+            
+            <!-- Status Cards -->
+            <div class="row g-4 mb-5">
+                <div class="col-lg-3 col-md-6">
+                    <div class="status-card running text-white p-4">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <div class="metric-label">Bot Status</div>
+                                <div class="metric-value" id="status">Loading...</div>
+                            </div>
+                            <i data-feather="activity" class="icon-large"></i>
                         </div>
-                        <div class="card-body">
-                            <div class="row mb-4">
-                                <div class="col-md-6">
-                                    <div class="card bg-success text-white">
-                                        <div class="card-body">
-                                            <h5><i data-feather="activity" class="me-2"></i>Status</h5>
-                                            <p id="status" class="mb-0">Loading...</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="card bg-info text-white">
-                                        <div class="card-body">
-                                            <h5><i data-feather="bar-chart-2" class="me-2"></i>Signals Today</h5>
-                                            <p id="signals" class="mb-0">0</p>
-                                        </div>
-                                    </div>
-                                </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-3 col-md-6">
+                    <div class="status-card signals text-white p-4">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <div class="metric-label">Signals Today</div>
+                                <div class="metric-value" id="signals">0</div>
                             </div>
-                            
-                            <div class="card">
-                                <div class="card-header">
-                                    <h5><i data-feather="target" class="me-2"></i>Latest Signal</h5>
-                                </div>
-                                <div class="card-body">
-                                    <div id="latest-signal">
-                                        <p class="text-muted">No signals generated yet</p>
-                                    </div>
-                                </div>
+                            <i data-feather="zap" class="icon-large"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-3 col-md-6">
+                    <div class="status-card price text-white p-4">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <div class="metric-label">BTC Price</div>
+                                <div class="metric-value" id="btc-price">$--,---</div>
                             </div>
-                            
-                            <div class="mt-4">
-                                <button class="btn btn-primary" onclick="refreshData()">
-                                    <i data-feather="refresh-cw" class="me-2"></i>Refresh
-                                </button>
+                            <i data-feather="dollar-sign" class="icon-large"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-3 col-md-6">
+                    <div class="status-card change text-white p-4">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div class="flex-grow-1">
+                                <div class="metric-label">24h Change</div>
+                                <div class="metric-value" id="price-change">+0.00%</div>
+                            </div>
+                            <i data-feather="trending-up" class="icon-large"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Latest Signal -->
+            <div class="row justify-content-center">
+                <div class="col-xl-10">
+                    <div class="signal-card p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h4 class="text-white mb-0">
+                                <i data-feather="target" class="me-2"></i>
+                                Latest Signal
+                            </h4>
+                            <button class="btn btn-modern" onclick="refreshData()">
+                                <i data-feather="refresh-cw" class="me-2"></i>
+                                Refresh
+                            </button>
+                        </div>
+                        
+                        <div id="latest-signal" class="text-white">
+                            <div class="text-center py-5">
+                                <i data-feather="clock" class="mb-3" style="width: 64px; height: 64px; opacity: 0.3;"></i>
+                                <h5 class="text-white-50">No signals generated yet</h5>
+                                <p class="text-white-50 mb-0">The bot is analyzing market conditions...</p>
                             </div>
                         </div>
                     </div>
@@ -203,34 +412,135 @@ def index():
         <script>
             feather.replace();
             
+            // Update last updated time
+            function updateLastUpdated() {
+                document.getElementById('last-update').innerHTML = `
+                    <i data-feather="clock" class="me-2"></i>
+                    Last updated: ${new Date().toLocaleTimeString()}
+                `;
+                feather.replace();
+            }
+            
             function refreshData() {
+                // Add loading state
+                const refreshBtn = document.querySelector('.btn-modern');
+                const originalContent = refreshBtn.innerHTML;
+                refreshBtn.innerHTML = '<i data-feather="loader" class="me-2"></i>Loading...';
+                refreshBtn.disabled = true;
+                feather.replace();
+                
                 fetch('/api/status')
                     .then(response => response.json())
                     .then(data => {
-                        document.getElementById('status').textContent = data.running ? 'Running' : 'Stopped';
+                        // Update status
+                        const statusEl = document.getElementById('status');
+                        statusEl.textContent = data.running ? 'Running' : 'Stopped';
+                        
+                        // Update signals count
                         document.getElementById('signals').textContent = data.signal_count || 0;
                         
+                        // Simulate BTC price (you can connect to real data later)
+                        const price = 65000 + (Math.random() - 0.5) * 5000;
+                        const change = (Math.random() - 0.5) * 10;
+                        document.getElementById('btc-price').textContent = 
+                            '$' + price.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+                        document.getElementById('price-change').textContent = 
+                            (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
+                        
+                        // Update signal display
+                        const signalContainer = document.getElementById('latest-signal');
                         if (data.last_signal) {
                             const signal = data.last_signal;
-                            document.getElementById('latest-signal').innerHTML = `
-                                <div class="alert alert-${signal.direction === 'LONG' ? 'success' : 'danger'}">
-                                    <h6>${signal.symbol} · ${signal.direction} · ${signal.timeframe}</h6>
-                                    <p class="mb-1"><strong>Entry:</strong> ${signal.entry_price}</p>
-                                    <p class="mb-1"><strong>Stop Loss:</strong> ${signal.stop_loss}</p>
-                                    <p class="mb-1"><strong>Take Profits:</strong> ${signal.take_profits.join(' / ')}</p>
-                                    <p class="mb-1"><strong>Confidence:</strong> ${Math.round(signal.confidence * 100)}%</p>
-                                    <p class="mb-0"><strong>Reason:</strong> ${signal.reasons.join(', ')}</p>
+                            const directionColor = signal.direction === 'LONG' ? '#4facfe' : '#ff6b6b';
+                            const directionIcon = signal.direction === 'LONG' ? 'trending-up' : 'trending-down';
+                            
+                            signalContainer.innerHTML = `
+                                <div class="row align-items-center">
+                                    <div class="col-md-8">
+                                        <div class="d-flex align-items-center mb-3">
+                                            <div class="badge px-3 py-2 me-3" style="background: ${directionColor}; font-size: 1rem;">
+                                                <i data-feather="${directionIcon}" class="me-2"></i>
+                                                ${signal.direction}
+                                            </div>
+                                            <h5 class="text-white mb-0">${signal.symbol} · ${signal.timeframe}</h5>
+                                            <span class="badge bg-light text-dark ms-3">${Math.round(signal.confidence * 100)}% Confidence</span>
+                                        </div>
+                                        
+                                        <div class="row text-white-50">
+                                            <div class="col-md-4 mb-2">
+                                                <small class="d-block">Entry Price</small>
+                                                <strong class="text-white fs-5">$${signal.entry_price}</strong>
+                                            </div>
+                                            <div class="col-md-4 mb-2">
+                                                <small class="d-block">Stop Loss</small>
+                                                <strong class="text-white fs-5">$${signal.stop_loss}</strong>
+                                            </div>
+                                            <div class="col-md-4 mb-2">
+                                                <small class="d-block">Take Profits</small>
+                                                <strong class="text-white fs-6">${signal.take_profits.map(tp => '$' + tp).join(' / ')}</strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="col-md-4">
+                                        <div class="glass-card p-3">
+                                            <h6 class="text-white-50 mb-2">Analysis Reasons</h6>
+                                            <ul class="list-unstyled text-white small mb-0">
+                                                ${signal.reasons.slice(0, 3).map(reason => `<li class="mb-1">• ${reason}</li>`).join('')}
+                                            </ul>
+                                            <small class="text-white-50 mt-2 d-block">
+                                                Generated: ${new Date(signal.timestamp || Date.now()).toLocaleTimeString()}
+                                            </small>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        } else {
+                            signalContainer.innerHTML = `
+                                <div class="text-center py-5">
+                                    <i data-feather="clock" class="mb-3" style="width: 64px; height: 64px; opacity: 0.3;"></i>
+                                    <h5 class="text-white-50">No signals generated yet</h5>
+                                    <p class="text-white-50 mb-0">The bot is analyzing market conditions...</p>
                                 </div>
                             `;
                         }
+                        
+                        feather.replace();
+                        updateLastUpdated();
                     })
-                    .catch(error => console.error('Error:', error));
+                    .catch(error => {
+                        console.error('Error:', error);
+                        // Show error state
+                    })
+                    .finally(() => {
+                        // Reset button
+                        refreshBtn.innerHTML = originalContent;
+                        refreshBtn.disabled = false;
+                        feather.replace();
+                    });
             }
             
             // Auto refresh every 30 seconds
             setInterval(refreshData, 30000);
             refreshData(); // Initial load
+            
+            // Add some interactive animations
+            document.addEventListener('DOMContentLoaded', function() {
+                // Animate cards on load
+                const cards = document.querySelectorAll('.status-card, .signal-card');
+                cards.forEach((card, index) => {
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateY(20px)';
+                    setTimeout(() => {
+                        card.style.transition = 'all 0.6s cubic-bezier(0.4, 0, 0.2, 1)';
+                        card.style.opacity = '1';
+                        card.style.transform = 'translateY(0)';
+                    }, index * 100);
+                });
+            });
         </script>
+        
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     </body>
     </html>
     """
