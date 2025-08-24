@@ -439,13 +439,25 @@ def index():
                         // Update signals count
                         document.getElementById('signals').textContent = data.signal_count || 0;
                         
-                        // Simulate BTC price (you can connect to real data later)
-                        const price = 65000 + (Math.random() - 0.5) * 5000;
-                        const change = (Math.random() - 0.5) * 10;
-                        document.getElementById('btc-price').textContent = 
-                            '$' + price.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-                        document.getElementById('price-change').textContent = 
-                            (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
+                        // Update real BTC price data
+                        if (data.btc_price) {
+                            document.getElementById('btc-price').textContent = 
+                                '$' + data.btc_price.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+                        } else {
+                            document.getElementById('btc-price').textContent = '$--,---';
+                        }
+                        
+                        if (data.price_change_percent !== null) {
+                            const change = data.price_change_percent;
+                            document.getElementById('price-change').textContent = 
+                                (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
+                            
+                            // Update icon based on price direction
+                            const changeIcon = document.querySelector('#price-change').parentElement.parentElement.querySelector('.icon-large');
+                            changeIcon.setAttribute('data-feather', change >= 0 ? 'trending-up' : 'trending-down');
+                        } else {
+                            document.getElementById('price-change').textContent = '+0.00%';
+                        }
                         
                         // Update signal display
                         const signalContainer = document.getElementById('latest-signal');
@@ -550,14 +562,45 @@ def index():
 def api_status():
     """API endpoint for bot status"""
     global bot
+    
+    # Get real BTC price data
+    btc_price = None
+    price_change = None
+    price_change_percent = None
+    
+    if bot and hasattr(bot, 'data_collector'):
+        try:
+            # Get current price
+            current_price = asyncio.run(bot.data_collector.get_current_price('BTCUSDT'))
+            if current_price:
+                btc_price = round(current_price, 2)
+            
+            # Get 24h ticker data for price change
+            ticker_data = asyncio.run(bot.data_collector.get_24h_ticker('BTCUSDT'))
+            if ticker_data:
+                price_change = round(ticker_data['price_change'], 2)
+                price_change_percent = round(ticker_data['price_change_percent'], 2)
+        except Exception as e:
+            print(f"Error fetching BTC price: {e}")
+    
     if bot:
         return jsonify({
             'running': bot.running,
             'signal_count': bot.signal_count,
-            'last_signal': bot.last_signal
+            'last_signal': bot.last_signal,
+            'btc_price': btc_price,
+            'price_change': price_change,
+            'price_change_percent': price_change_percent
         })
     else:
-        return jsonify({'running': False, 'signal_count': 0, 'last_signal': None})
+        return jsonify({
+            'running': False, 
+            'signal_count': 0, 
+            'last_signal': None,
+            'btc_price': None,
+            'price_change': None,
+            'price_change_percent': None
+        })
 
 # Global bot instance
 bot = None
