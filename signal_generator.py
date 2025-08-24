@@ -25,7 +25,7 @@ class SignalGenerator:
         self.min_confidence = config.get('signals', {}).get('min_confidence', 0.6)
         self.sentiment_threshold = config.get('sentiment', {}).get('threshold', 0.2)
     
-    def generate_signal(self, df: pd.DataFrame, sentiment_score: float) -> Optional[Dict[str, Any]]:
+    def generate_signal(self, df: pd.DataFrame, sentiment_score: float, symbol: str = None, timeframe: str = None) -> Optional[Dict[str, Any]]:
         """
         Generate trading signal based on technical analysis and sentiment
         """
@@ -36,8 +36,12 @@ class SignalGenerator:
             
             # Get the latest data point
             current = df.iloc[-1]
-            symbol = self.config['trading']['symbol']
-            timeframe = self.config['trading']['timeframe']
+            
+            # Use provided symbol/timeframe or fall back to config
+            if symbol is None:
+                symbol = self.config['trading'].get('symbol', self.config['trading']['symbols'][0])
+            if timeframe is None:
+                timeframe = self.config['trading'].get('timeframe', self.config['trading']['timeframes'][0])
             
             # Import strategy here to avoid circular imports
             from strategy import TradingStrategy

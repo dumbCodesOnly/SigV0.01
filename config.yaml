@@ -2,8 +2,8 @@
 
 # Trading Configuration
 trading:
-  symbol: "BTCUSDT"
-  timeframe: "15m"
+  symbols: ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT"]
+  timeframes: ["5m", "15m", "1h", "4h"]
   check_interval: 300  # seconds between analysis cycles
 
 # API Keys (override with environment variables)

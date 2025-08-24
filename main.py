@@ -30,8 +30,9 @@ class CryptoSignalBot:
         """Initialize the crypto signal bot"""
         self.config = self._load_config(config_path)
         self.running = False
-        self.last_signal = None
+        self.last_signals = {}  # Store signals for each symbol/timeframe
         self.signal_count = 0
+        self.market_data = {}  # Store market data for multiple symbols
         
         # Initialize components
         self.data_collector = DataCollector(self.config)
@@ -63,45 +64,89 @@ class CryptoSignalBot:
             sys.exit(1)
     
     async def run_analysis_cycle(self):
-        """Run one complete analysis cycle"""
+        """Run one complete analysis cycle for all symbols and timeframes"""
         try:
-            symbol = self.config['trading']['symbol']
-            timeframe = self.config['trading']['timeframe']
+            symbols = self.config['trading']['symbols']
+            timeframes = self.config['trading']['timeframes']
             
-            self.logger.info(f"Starting analysis cycle for {symbol} {timeframe}")
+            self.logger.info(f"Starting analysis cycle for {len(symbols)} symbols and {len(timeframes)} timeframes")
+            
+            for symbol in symbols:
+                # Update market data for this symbol
+                await self._update_market_data(symbol)
+                
+                for timeframe in timeframes:
+                    try:
+                        await self._analyze_symbol_timeframe(symbol, timeframe)
+                    except Exception as e:
+                        self.logger.error(f"Error analyzing {symbol} {timeframe}: {e}")
+                        continue
+                        
+        except Exception as e:
+            self.logger.error(f"Error in analysis cycle: {e}")
+    
+    async def _update_market_data(self, symbol: str):
+        """Update market data for a symbol"""
+        try:
+            # Get current price and 24h ticker
+            current_price = await self.data_collector.get_current_price(symbol)
+            ticker_data = await self.data_collector.get_24h_ticker(symbol)
+            
+            if current_price and ticker_data:
+                self.market_data[symbol] = {
+                    'price': round(current_price, 2),
+                    'change': round(ticker_data['price_change'], 2),
+                    'change_percent': round(ticker_data['price_change_percent'], 2),
+                    'volume': ticker_data['volume'],
+                    'high_24h': ticker_data['high_price'],
+                    'low_24h': ticker_data['low_price'],
+                    'updated': datetime.now().isoformat()
+                }
+        except Exception as e:
+            self.logger.warning(f"Failed to update market data for {symbol}: {e}")
+    
+    async def _analyze_symbol_timeframe(self, symbol: str, timeframe: str):
+        """Analyze a specific symbol and timeframe combination"""
+        try:
+            self.logger.debug(f"Analyzing {symbol} {timeframe}")
             
             # 1. Collect latest data
             df = await self.data_collector.get_ohlcv_data(symbol, timeframe)
             if df is None or df.empty:
-                self.logger.warning("No data collected, skipping cycle")
+                self.logger.warning(f"No data collected for {symbol} {timeframe}")
                 return
-            
-            self.logger.info(f"Collected {len(df)} candles")
             
             # 2. Calculate technical indicators
             df_with_indicators = self.strategy.calculate_indicators(df)
             
-            # 3. Get sentiment data
+            # 3. Get sentiment data (cached per symbol)
             sentiment_score = await self.sentiment_analyzer.get_sentiment(symbol)
             
-            # 4. Generate signal
+            # 4. Generate signal with symbol and timeframe context
             signal = self.signal_generator.generate_signal(
                 df_with_indicators, 
-                sentiment_score
+                sentiment_score,
+                symbol=symbol,
+                timeframe=timeframe
             )
             
+            # 5. Store and process signal
+            key = f"{symbol}_{timeframe}"
             if signal:
-                self.logger.info(f"Signal generated: {signal['direction']} at {signal['entry_price']}")
-                self.last_signal = signal
+                self.logger.info(f"Signal generated for {symbol} {timeframe}: {signal['direction']} at {signal['entry_price']}")
+                self.last_signals[key] = signal
                 self.signal_count += 1
                 
-                # 5. Send notification
+                # Send notification for new signals
                 await self.notifier.send_signal(signal)
             else:
-                self.logger.info("No signal generated")
-                
+                # Keep track that no signal was generated
+                if key in self.last_signals:
+                    # Clear old signal if no new signal
+                    pass  # Keep the last signal for display
+                    
         except Exception as e:
-            self.logger.error(f"Error in analysis cycle: {e}")
+            self.logger.error(f"Error analyzing {symbol} {timeframe}: {e}")
     
     async def run(self):
         """Main bot loop"""
@@ -332,7 +377,7 @@ def index():
             </div>
             
             <!-- Status Cards -->
-            <div class="row g-4 mb-5">
+            <div class="row g-4 mb-4">
                 <div class="col-lg-3 col-md-6">
                     <div class="status-card running text-white p-4">
                         <div class="d-flex justify-content-between align-items-start">
@@ -349,7 +394,7 @@ def index():
                     <div class="status-card signals text-white p-4">
                         <div class="d-flex justify-content-between align-items-start">
                             <div class="flex-grow-1">
-                                <div class="metric-label">Signals Today</div>
+                                <div class="metric-label">Total Signals</div>
                                 <div class="metric-value" id="signals">0</div>
                             </div>
                             <i data-feather="zap" class="icon-large"></i>
@@ -361,10 +406,10 @@ def index():
                     <div class="status-card price text-white p-4">
                         <div class="d-flex justify-content-between align-items-start">
                             <div class="flex-grow-1">
-                                <div class="metric-label">BTC Price</div>
-                                <div class="metric-value" id="btc-price">$--,---</div>
+                                <div class="metric-label">Symbols Tracking</div>
+                                <div class="metric-value" id="symbol-count">5</div>
                             </div>
-                            <i data-feather="dollar-sign" class="icon-large"></i>
+                            <i data-feather="eye" class="icon-large"></i>
                         </div>
                     </div>
                 </div>
@@ -373,10 +418,32 @@ def index():
                     <div class="status-card change text-white p-4">
                         <div class="d-flex justify-content-between align-items-start">
                             <div class="flex-grow-1">
-                                <div class="metric-label">24h Change</div>
-                                <div class="metric-value" id="price-change">+0.00%</div>
+                                <div class="metric-label">Timeframes</div>
+                                <div class="metric-value" id="timeframe-count">4</div>
                             </div>
-                            <i data-feather="trending-up" class="icon-large"></i>
+                            <i data-feather="clock" class="icon-large"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Cryptocurrency Market Data -->
+            <div class="row g-4 mb-4">
+                <div class="col-12">
+                    <div class="signal-card p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h4 class="text-white mb-0">
+                                <i data-feather="trending-up" class="me-2"></i>
+                                Market Overview
+                            </h4>
+                            <button class="btn btn-modern" onclick="refreshData()">
+                                <i data-feather="refresh-cw" class="me-2"></i>
+                                Refresh
+                            </button>
+                        </div>
+                        
+                        <div id="crypto-grid" class="row g-3">
+                            <!-- Crypto cards will be populated by JavaScript -->
                         </div>
                     </div>
                 </div>
@@ -439,90 +506,18 @@ def index():
                         // Update signals count
                         document.getElementById('signals').textContent = data.signal_count || 0;
                         
-                        // Update real BTC price data
-                        if (data.btc_price) {
-                            document.getElementById('btc-price').textContent = 
-                                '$' + data.btc_price.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
-                        } else {
-                            document.getElementById('btc-price').textContent = '$--,---';
-                        }
+                        // Update crypto grid
+                        updateCryptoGrid(data.crypto_data || {});
                         
-                        if (data.price_change_percent !== null) {
-                            const change = data.price_change_percent;
-                            document.getElementById('price-change').textContent = 
-                                (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
-                            
-                            // Update icon based on price direction
-                            const changeIcon = document.querySelector('#price-change').parentElement.parentElement.querySelector('.icon-large');
-                            changeIcon.setAttribute('data-feather', change >= 0 ? 'trending-up' : 'trending-down');
-                        } else {
-                            document.getElementById('price-change').textContent = '+0.00%';
-                        }
-                        
-                        // Update signal display
-                        const signalContainer = document.getElementById('latest-signal');
-                        if (data.last_signal) {
-                            const signal = data.last_signal;
-                            const directionColor = signal.direction === 'LONG' ? '#4facfe' : '#ff6b6b';
-                            const directionIcon = signal.direction === 'LONG' ? 'trending-up' : 'trending-down';
-                            
-                            signalContainer.innerHTML = `
-                                <div class="row align-items-center">
-                                    <div class="col-md-8">
-                                        <div class="d-flex align-items-center mb-3">
-                                            <div class="badge px-3 py-2 me-3" style="background: ${directionColor}; font-size: 1rem;">
-                                                <i data-feather="${directionIcon}" class="me-2"></i>
-                                                ${signal.direction}
-                                            </div>
-                                            <h5 class="text-white mb-0">${signal.symbol} · ${signal.timeframe}</h5>
-                                            <span class="badge bg-light text-dark ms-3">${Math.round(signal.confidence * 100)}% Confidence</span>
-                                        </div>
-                                        
-                                        <div class="row text-white-50">
-                                            <div class="col-md-4 mb-2">
-                                                <small class="d-block">Entry Price</small>
-                                                <strong class="text-white fs-5">$${signal.entry_price}</strong>
-                                            </div>
-                                            <div class="col-md-4 mb-2">
-                                                <small class="d-block">Stop Loss</small>
-                                                <strong class="text-white fs-5">$${signal.stop_loss}</strong>
-                                            </div>
-                                            <div class="col-md-4 mb-2">
-                                                <small class="d-block">Take Profits</small>
-                                                <strong class="text-white fs-6">${signal.take_profits.map(tp => '$' + tp).join(' / ')}</strong>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <div class="col-md-4">
-                                        <div class="glass-card p-3">
-                                            <h6 class="text-white-50 mb-2">Analysis Reasons</h6>
-                                            <ul class="list-unstyled text-white small mb-0">
-                                                ${signal.reasons.slice(0, 3).map(reason => `<li class="mb-1">• ${reason}</li>`).join('')}
-                                            </ul>
-                                            <small class="text-white-50 mt-2 d-block">
-                                                Generated: ${new Date(signal.timestamp || Date.now()).toLocaleTimeString()}
-                                            </small>
-                                        </div>
-                                    </div>
-                                </div>
-                            `;
-                        } else {
-                            signalContainer.innerHTML = `
-                                <div class="text-center py-5">
-                                    <i data-feather="clock" class="mb-3" style="width: 64px; height: 64px; opacity: 0.3;"></i>
-                                    <h5 class="text-white-50">No signals generated yet</h5>
-                                    <p class="text-white-50 mb-0">The bot is analyzing market conditions...</p>
-                                </div>
-                            `;
-                        }
+                        // Update latest signals display
+                        updateSignalsDisplay(data.last_signals || {});
                         
                         feather.replace();
                         updateLastUpdated();
                     })
                     .catch(error => {
                         console.error('Error:', error);
-                        // Show error state
+                        showErrorState();
                     })
                     .finally(() => {
                         // Reset button
@@ -530,6 +525,140 @@ def index():
                         refreshBtn.disabled = false;
                         feather.replace();
                     });
+            }
+            
+            function updateCryptoGrid(cryptoData) {
+                const grid = document.getElementById('crypto-grid');
+                const symbols = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT'];
+                const symbolNames = {
+                    'BTCUSDT': 'Bitcoin',
+                    'ETHUSDT': 'Ethereum', 
+                    'BNBUSDT': 'BNB',
+                    'SOLUSDT': 'Solana',
+                    'XRPUSDT': 'XRP'
+                };
+                
+                let gridHTML = '';
+                
+                symbols.forEach(symbol => {
+                    const data = cryptoData[symbol];
+                    const name = symbolNames[symbol];
+                    const shortSymbol = symbol.replace('USDT', '');
+                    
+                    if (data) {
+                        const changeColor = data.change_percent >= 0 ? '#4facfe' : '#ff6b6b';
+                        const changeIcon = data.change_percent >= 0 ? 'trending-up' : 'trending-down';
+                        
+                        gridHTML += `
+                            <div class="col-lg-2 col-md-4 col-sm-6">
+                                <div class="glass-card p-3 text-center">
+                                    <h6 class="text-white mb-1">${shortSymbol}</h6>
+                                    <small class="text-white-50 d-block mb-2">${name}</small>
+                                    <div class="h5 text-white mb-1">$${data.price.toFixed(data.price > 1 ? 2 : 6)}</div>
+                                    <div class="d-flex align-items-center justify-content-center">
+                                        <i data-feather="${changeIcon}" style="width: 14px; height: 14px; color: ${changeColor};" class="me-1"></i>
+                                        <small style="color: ${changeColor};">
+                                            ${data.change_percent >= 0 ? '+' : ''}${data.change_percent.toFixed(2)}%
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        gridHTML += `
+                            <div class="col-lg-2 col-md-4 col-sm-6">
+                                <div class="glass-card p-3 text-center">
+                                    <h6 class="text-white mb-1">${shortSymbol}</h6>
+                                    <small class="text-white-50 d-block mb-2">${name}</small>
+                                    <div class="h5 text-white-50 mb-1">Loading...</div>
+                                    <small class="text-white-50">---%</small>
+                                </div>
+                            </div>
+                        `;
+                    }
+                });
+                
+                grid.innerHTML = gridHTML;
+            }
+            
+            function updateSignalsDisplay(lastSignals) {
+                const signalContainer = document.getElementById('latest-signal');
+                const signals = Object.values(lastSignals);
+                
+                if (signals.length > 0) {
+                    // Show the most recent signal
+                    const latestSignal = signals.reduce((latest, current) => {
+                        return new Date(current.timestamp || 0) > new Date(latest.timestamp || 0) ? current : latest;
+                    });
+                    
+                    const directionColor = latestSignal.direction === 'LONG' ? '#4facfe' : '#ff6b6b';
+                    const directionIcon = latestSignal.direction === 'LONG' ? 'trending-up' : 'trending-down';
+                    
+                    signalContainer.innerHTML = `
+                        <div class="row align-items-center">
+                            <div class="col-md-8">
+                                <div class="d-flex align-items-center mb-3">
+                                    <div class="badge px-3 py-2 me-3" style="background: ${directionColor}; font-size: 1rem;">
+                                        <i data-feather="${directionIcon}" class="me-2"></i>
+                                        ${latestSignal.direction}
+                                    </div>
+                                    <h5 class="text-white mb-0">${latestSignal.symbol} · ${latestSignal.timeframe}</h5>
+                                    <span class="badge bg-light text-dark ms-3">${Math.round(latestSignal.confidence * 100)}% Confidence</span>
+                                </div>
+                                
+                                <div class="row text-white-50">
+                                    <div class="col-md-4 mb-2">
+                                        <small class="d-block">Entry Price</small>
+                                        <strong class="text-white fs-5">$${latestSignal.entry_price}</strong>
+                                    </div>
+                                    <div class="col-md-4 mb-2">
+                                        <small class="d-block">Stop Loss</small>
+                                        <strong class="text-white fs-5">$${latestSignal.stop_loss}</strong>
+                                    </div>
+                                    <div class="col-md-4 mb-2">
+                                        <small class="d-block">Take Profits</small>
+                                        <strong class="text-white fs-6">${latestSignal.take_profits.map(tp => '$' + tp).join(' / ')}</strong>
+                                    </div>
+                                </div>
+                                
+                                <div class="mt-3">
+                                    <small class="text-white-50">Active Signals: ${signals.length} across multiple timeframes</small>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-4">
+                                <div class="glass-card p-3">
+                                    <h6 class="text-white-50 mb-2">Analysis Reasons</h6>
+                                    <ul class="list-unstyled text-white small mb-0">
+                                        ${latestSignal.reasons.slice(0, 3).map(reason => `<li class="mb-1">• ${reason}</li>`).join('')}
+                                    </ul>
+                                    <small class="text-white-50 mt-2 d-block">
+                                        Generated: ${new Date(latestSignal.timestamp || Date.now()).toLocaleTimeString()}
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    signalContainer.innerHTML = `
+                        <div class="text-center py-5">
+                            <i data-feather="search" class="mb-3" style="width: 64px; height: 64px; opacity: 0.3;"></i>
+                            <h5 class="text-white-50">Analyzing Multiple Markets</h5>
+                            <p class="text-white-50 mb-0">Monitoring BTC, ETH, BNB, SOL, XRP across 5m, 15m, 1h, 4h timeframes</p>
+                        </div>
+                    `;
+                }
+            }
+            
+            function showErrorState() {
+                document.getElementById('crypto-grid').innerHTML = `
+                    <div class="col-12 text-center">
+                        <div class="text-white-50">
+                            <i data-feather="wifi-off" style="width: 48px; height: 48px; opacity: 0.5;"></i>
+                            <p class="mt-2">Unable to fetch market data</p>
+                        </div>
+                    </div>
+                `;
             }
             
             // Auto refresh every 30 seconds
@@ -558,46 +687,53 @@ def index():
     """
     return render_template_string(html_template)
 
-async def fetch_btc_price_data():
-    """Fetch BTC price data directly from Binance API"""
+async def fetch_all_crypto_data():
+    """Fetch market data for all supported cryptocurrencies"""
     from data_collector import DataCollector
+    
+    symbols = ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT"]
+    crypto_data = {}
     
     try:
         # Create a temporary data collector for price fetching
-        temp_config = {"api_keys": {}}  # Empty config is fine for public API calls
+        temp_config = {"api_keys": {}}
         collector = DataCollector(temp_config)
         
-        # Get current price
-        current_price = await collector.get_current_price('BTCUSDT')
-        btc_price = round(current_price, 2) if current_price else None
-        
-        # Get 24h ticker data
-        ticker_data = await collector.get_24h_ticker('BTCUSDT')
-        price_change = None
-        price_change_percent = None
-        
-        if ticker_data:
-            price_change = round(ticker_data['price_change'], 2)
-            price_change_percent = round(ticker_data['price_change_percent'], 2)
+        for symbol in symbols:
+            try:
+                # Get current price and 24h ticker data
+                current_price = await collector.get_current_price(symbol)
+                ticker_data = await collector.get_24h_ticker(symbol)
+                
+                if current_price and ticker_data:
+                    crypto_data[symbol] = {
+                        'price': round(current_price, 6),
+                        'change': round(ticker_data['price_change'], 6),
+                        'change_percent': round(ticker_data['price_change_percent'], 2),
+                        'volume': ticker_data['volume'],
+                        'high_24h': ticker_data['high_price'],
+                        'low_24h': ticker_data['low_price']
+                    }
+            except Exception as e:
+                print(f"Error fetching data for {symbol}: {e}")
+                continue
         
         # Close the session
         await collector.close()
         
-        return btc_price, price_change, price_change_percent
+        return crypto_data
         
     except Exception as e:
-        print(f"Error fetching BTC price data: {e}")
-        return None, None, None
+        print(f"Error fetching crypto data: {e}")
+        return {}
 
 @app.route('/api/status')
 def api_status():
     """API endpoint for bot status"""
     global bot
     
-    # Get real BTC price data directly from API
-    btc_price = None
-    price_change = None
-    price_change_percent = None
+    # Get real market data for all cryptocurrencies
+    crypto_data = {}
     
     try:
         # Create new event loop for price fetching
@@ -606,30 +742,33 @@ def api_status():
         asyncio.set_event_loop(loop)
         
         try:
-            btc_price, price_change, price_change_percent = loop.run_until_complete(fetch_btc_price_data())
+            crypto_data = loop.run_until_complete(fetch_all_crypto_data())
         finally:
             loop.close()
             
     except Exception as e:
-        print(f"Error in price fetch: {e}")
+        print(f"Error in crypto data fetch: {e}")
     
     # Bot status (may be None if running under gunicorn)
     bot_running = False
     signal_count = 0
-    last_signal = None
+    last_signals = {}
+    market_data = {}
     
     if bot:
         bot_running = bot.running
         signal_count = bot.signal_count
-        last_signal = bot.last_signal
+        last_signals = getattr(bot, 'last_signals', {})
+        market_data = getattr(bot, 'market_data', {})
     
     return jsonify({
         'running': bot_running,
         'signal_count': signal_count,
-        'last_signal': last_signal,
-        'btc_price': btc_price,
-        'price_change': price_change,
-        'price_change_percent': price_change_percent
+        'last_signals': last_signals,
+        'crypto_data': crypto_data,
+        'market_data': market_data,
+        'symbols': ["BTCUSDT", "ETHUSDT", "BNBUSDT", "SOLUSDT", "XRPUSDT"],
+        'timeframes': ["5m", "15m", "1h", "4h"]
     })
 
 # Global bot instance
